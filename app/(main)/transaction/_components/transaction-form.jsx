@@ -119,11 +119,15 @@ export function AddTransactionForm({
       reset();
       router.push(`/account/${transactionResult.data.accountId}`);
     }
-  }, [transactionResult, transactionLoading, editMode]);
+  }, [transactionResult, transactionLoading, editMode,reset, router]);
 
-  const type = watch("type");
-  const isRecurring = watch("isRecurring");
-  const date = watch("date");
+  // eslint-disable-next-line react-hooks/incompatible-library
+const type = watch("type");
+// eslint-disable-next-line react-hooks/incompatible-library
+const isRecurring = watch("isRecurring");
+// eslint-disable-next-line react-hooks/incompatible-library
+const date = watch("date");
+
 
   const filteredCategories = categories.filter(
     (category) => category.type === type

@@ -71,6 +71,11 @@ export function CreateAccountDrawer({ children }) {
       toast.error(error.message || "Failed to create account");
     }
   }, [error]);
+  // eslint-disable-next-line react-hooks/incompatible-library
+const type = watch("type");
+// eslint-disable-next-line react-hooks/incompatible-library
+const isDefault = watch("isDefault");
+
 
   return (
     <Drawer open={open} onOpenChange={setOpen}>
@@ -107,7 +112,7 @@ export function CreateAccountDrawer({ children }) {
               </label>
               <Select
                 onValueChange={(value) => setValue("type", value)}
-                defaultValue={watch("type")}
+                defaultValue={type}
               >
                 <SelectTrigger id="type">
                   <SelectValue placeholder="Select type" />
@@ -154,10 +159,10 @@ export function CreateAccountDrawer({ children }) {
                 </p>
               </div>
               <Switch
-                id="isDefault"
-                checked={watch("isDefault")}
-                onCheckedChange={(checked) => setValue("isDefault", checked)}
-              />
+  id="isDefault"
+  checked={isDefault} // use local constant
+  onCheckedChange={(checked) => setValue("isDefault", checked)}
+/>
             </div>
 
             <div className="flex gap-4 pt-4">
