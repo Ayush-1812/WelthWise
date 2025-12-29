@@ -1,0 +1,54 @@
+What is a middleware file?
+   middleware file runs before your app runs so we need to initialize clerk before our app loads
+
+
+   Arcjet to provide security to our app
+
+   inngest provides queing , scheduling and transactions notifications
+
+
+   npx prisma migrate dev --name create-models
+   
+   Prisma = type-safe bridge between your TypeScript code and database
+
+
+   What is Prisma?
+
+Prisma is an ORM (Object Relational Mapper)
+
+It connects TypeScript/JavaScript code ↔ Database
+
+Lets you work with DB using JS/TS objects instead of SQL
+
+schema.prisma → prisma generate → Prisma Client → Database
+
+
+Prisma can be used ONLY in server components, server actions, or API routes
+
+suspense in dashboard what? (<Suspense> is a React component that lets you wait for something to load (data, component, etc.) and show a fallback UI meanwhile.
+
+Think of it as:
+
+“Show this loader until the content is ready.”)
+
+
+nextJS does not support the decimal values we need to serialize data before returning
+
+react-hook-forms helps us to manage our forms , zod is a validation library helps to handle errors and validation of our form and hookform/resolvers will help us to connect both of these
+
+Why use _components?
+
+To mark non-route folders
+
+Avoid confusion with route folders in app/
+
+Makes it clear these are shared components
+
+
+
+Sorting in Js(To sort numbers correctly: provide a compare function:
+
+arr.sort((a, b) => a - b)  // ascending
+arr.sort((a, b) => b - a)  // descending)
+
+
