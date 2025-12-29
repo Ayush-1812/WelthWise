@@ -1,4 +1,4 @@
- import HeroSection from "@/components/hero"
+ import HeroSection from "@/components/hero.jsx"
  import { Card, CardContent } from "@/components/ui/card";
  import Image from "next/image";
  import { Button } from "@/components/ui/button";
