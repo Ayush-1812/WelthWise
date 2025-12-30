@@ -25,10 +25,16 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-8">
       {/* Budget Progress */}
-      <BudgetProgress
-        initialBudget={budgetData?.budget}
-        currentExpenses={budgetData?.currentExpenses || 0}
-      />
+      {budgetData ? (
+        <BudgetProgress
+          initialBudget={budgetData.budget}
+          currentExpenses={budgetData.currentExpenses || 0}
+        />
+      ) : (
+        <Card>
+          <CardContent>No budget set for default account</CardContent>
+        </Card>
+      )}
 
       {/* Dashboard Overview */}
       <DashboardOverview

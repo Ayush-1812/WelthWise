@@ -5,6 +5,7 @@ import { Pencil, Check, X } from "lucide-react";
 import useFetch from "@/hooks/use-fetch";
 import { toast } from "sonner";
 import { updateBudget } from "@/actions/budget";
+if (!updateBudget) throw new Error("updateBudget is undefined");
 
 import {
   Card,
