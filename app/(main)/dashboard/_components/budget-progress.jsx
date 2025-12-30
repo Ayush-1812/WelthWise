@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Pencil, Check, X } from "lucide-react";
 import useFetch from "@/hooks/use-fetch";
 import { toast } from "sonner";
+import { updateBudget } from "@/actions/budget";
 
 import {
   Card,
@@ -28,7 +29,7 @@ export function BudgetProgress({ initialBudget, currentExpenses }) {
     fn: updateBudgetFn,
     data: updatedBudget,
     error,
-  } = useFetch(updateBudgetFn);
+  } = useFetch(updateBudget);
 
   const percentUsed = initialBudget
     ? (currentExpenses / initialBudget.amount) * 100
