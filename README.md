@@ -13,7 +13,7 @@
 - 📈 Visual spending analytics and reports
 - 📅 Monthly financial summaries
 - 🔔 Automated recurring transaction reminders
-- - 👥 SplitWise-style shared expense tracking and settlement
+- 👥 SplitWise-style shared expense tracking and settlement
 - 💳 Group expense management
 - 🔄 Automatic balance calculation and debt simplification
 - 📧 Expense sharing via invite links
