@@ -1,36 +1,183 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 💰 WealthWise – AI-Powered Personal Finance Platform
 
-## Getting Started
+> A modern full-stack personal finance platform that helps users track income, expenses, budgets, and financial goals with AI-powered insights and real-time analytics.
 
-First, run the development server:
+🌐 **Live Demo:** https://welth-wise-nwr1-git-main-ayush-carpenters-projects.vercel.app/
+
+---
+
+## ✨ Features
+- 📊 Interactive financial dashboard
+- 💸 Income & expense management
+- 🤖 AI-powered financial insights and recommendations
+- 📈 Visual spending analytics and reports
+- 📅 Monthly financial summaries
+- 🔔 Automated recurring transaction reminders
+- - 👥 SplitWise-style shared expense tracking and settlement
+- 💳 Group expense management
+- 🔄 Automatic balance calculation and debt simplification
+- 📧 Expense sharing via invite links
+---
+
+## 🛠️ Tech Stack
+
+### Frontend
+- Next.js 15
+- React 19
+- Tailwind CSS
+- Shadcn/UI
+- Lucide React
+
+### Backend
+- Next.js API Routes
+- Prisma ORM
+- Inngest
+- Clerk Authentication
+
+### Database
+- PostgreSQL (Supabase)
+
+### AI
+- Google Gemini API
+
+### Deployment
+- Vercel
+
+---
+
+# 🏗️ Technical Architecture
+
+```text
+                          ┌─────────────────────────┐
+                          │        Client           │
+                          │  Next.js + React UI     │
+                          └──────────┬──────────────┘
+                                     │
+                                     │ HTTPS
+                                     ▼
+                    ┌────────────────────────────────┐
+                    │        Next.js Server          │
+                    │    API Routes / Server Actions │
+                    └──────────┬─────────┬───────────┘
+                               │         │
+                Authentication │         │ Business Logic
+                               │         │
+                               ▼         ▼
+                     ┌─────────────┐   ┌──────────────────┐
+                     │   Clerk     │   │     Prisma ORM    │
+                     └─────────────┘   └─────────┬─────────┘
+                                                 │
+                                                 ▼
+                                    ┌────────────────────────┐
+                                    │ PostgreSQL (Supabase)  │
+                                    └────────────────────────┘
+
+                               │
+                               │ AI Requests
+                               ▼
+                      ┌─────────────────────┐
+                      │ Google Gemini API   │
+                      └─────────────────────┘
+
+                               │
+                               │ Background Jobs
+                               ▼
+                      ┌─────────────────────┐
+                      │      Inngest        │
+                      └─────────────────────┘
+```
+
+---
+
+## 📂 Project Structure
+
+```
+wealthwise
+│
+├── app/
+├── components/
+├── actions/
+├── lib/
+├── prisma/
+├── hooks/
+├── public/
+├── styles/
+├── utils/
+└── middleware.ts
+```
+
+---
+
+## 🚀 Getting Started
+
+### Clone the repository
+
+```bash
+git clone https://github.com/<your-username>/wealthwise.git
+```
+
+### Install dependencies
+
+```bash
+npm install
+```
+
+### Configure Environment Variables
+
+Create a `.env` file.
+
+```env
+DATABASE_URL=
+
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
+CLERK_SECRET_KEY=
+
+GEMINI_API_KEY=
+
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+```
+
+### Run locally
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📈 Future Improvements
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Redis caching for dashboard analytics
+- Email notifications
+- Multi-currency support
+- OCR receipt scanning
+- Investment portfolio tracking
+- Export reports as PDF
+- Financial goal prediction using AI
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## 📸 Screenshots
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+> Add screenshots of:
+>
+> - Dashboard
+> - Budget Page
+> - AI Insights
+> - Transactions
+> - Authentication
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## 👨‍💻 Author
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+**Ayush Carpenter**
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- GitHub: https://github.com/Ayush-1812
+
+---
+
+## ⭐ If you like this project
+
+Give it a ⭐ on GitHub!
