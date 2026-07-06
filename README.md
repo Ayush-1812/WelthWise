@@ -158,18 +158,6 @@ npm run dev
 
 ---
 
-## 📸 Screenshots
-
-> Add screenshots of:
->
-> - Dashboard
-> - Budget Page
-> - AI Insights
-> - Transactions
-> - Authentication
-
----
-
 ## 👨‍💻 Author
 
 **Ayush Carpenter**
