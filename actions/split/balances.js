@@ -10,6 +10,7 @@ import {
 import {
   computeNetBalances,
   computePairwiseBalances,
+  contributionsBetween,
   pairwiseForUser,
   summarizeByCounterparty,
   netBalanceFor,
@@ -224,6 +225,96 @@ export async function getBalanceWith(otherUserId) {
     return {
       success: true,
       data: { netBalance: (perPerson.get(otherUserId) ?? new Decimal(0)).toNumber() },
+    };
+  } catch (error) {
+    return fail(error);
+  }
+}
+
+/**
+ * The rows behind one balance, so every rupee traces to a specific expense or
+ * settlement. The returned `contribution` values sum to `netBalance`.
+ */
+export async function getBalanceDetail(otherUserId) {
+  try {
+    const me = await getCurrentAppUser();
+
+    const other = await db.user.findUnique({
+      where: { id: otherUserId },
+      select: USER_FIELDS,
+    });
+    if (!other) {
+      return fail(new AccessError("NOT_FOUND", "Person not found"));
+    }
+
+    const ledger = await loadUserLedger(me.id);
+
+    // loadUserLedger omits settlement ids and dates, which this view needs.
+    const settlements = await db.settlement.findMany({
+      where: {
+        OR: [
+          { fromUserId: me.id, toUserId: otherUserId },
+          { fromUserId: otherUserId, toUserId: me.id },
+        ],
+      },
+      select: {
+        id: true,
+        fromUserId: true,
+        toUserId: true,
+        amount: true,
+        settledAt: true,
+        groupId: true,
+        note: true,
+        method: true,
+      },
+    });
+
+    // Expense descriptions and dates likewise are not in the balance ledger.
+    const expenseIds = ledger.expenses.map((e) => e.id);
+    const details = expenseIds.length
+      ? await db.sharedExpense.findMany({
+          where: { id: { in: expenseIds } },
+          select: {
+            id: true,
+            description: true,
+            date: true,
+            category: true,
+            group: { select: { id: true, name: true, icon: true } },
+          },
+        })
+      : [];
+    const detailById = new Map(details.map((d) => [d.id, d]));
+
+    const enriched = {
+      expenses: ledger.expenses.map((e) => ({
+        ...e,
+        description: detailById.get(e.id)?.description ?? "Expense",
+        date: detailById.get(e.id)?.date ?? null,
+      })),
+      settlements,
+    };
+
+    const rows = contributionsBetween(enriched, me.id, otherUserId);
+    const netBalance = pairwiseForUser(ledger, me.id).get(otherUserId) ?? new Decimal(0);
+
+    return {
+      success: true,
+      data: {
+        other,
+        netBalance: netBalance.toNumber(),
+        rows: rows.map((row) => ({
+          kind: row.kind,
+          id: row.id,
+          date: row.date,
+          description: row.description ?? null,
+          amount: row.amount.toNumber(),
+          share: row.share ? row.share.toNumber() : null,
+          contribution: row.contribution.toNumber(),
+          paidByMe: row.paidByMe ?? null,
+          sentByMe: row.sentByMe ?? null,
+          group: row.groupId ? (detailById.get(row.id)?.group ?? null) : null,
+        })),
+      },
     };
   } catch (error) {
     return fail(error);

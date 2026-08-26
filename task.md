@@ -393,14 +393,14 @@ date → notes → save
 
 ---
 
-## M9 · Who owes whom & expense detail
+## M9 · Who owes whom & expense detail ✅ DONE
 
 **Files:** `app/(main)/split/balances/`, `app/(main)/split/expenses/[id]/`
 
 **Work**
-- [ ] "Rahul owes you ₹500" list, both directions
-- [ ] Drill-down: click a balance → the expenses that created it
-- [ ] Expense detail page showing everything in spec #18: name, total, payer,
+- [x] "Rahul owes you ₹500" list, both directions
+- [x] Drill-down: click a balance → the expenses that created it
+- [x] Expense detail page showing everything in spec #18: name, total, payer,
       participants, individual shares, method, date, category, notes, receipt,
       resulting debts, edit/delete where permitted
 

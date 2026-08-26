@@ -53,10 +53,11 @@ export default async function SplitExpensesPage() {
           <CardContent className="p-0">
             <ul className="divide-y">
               {expenses.map((expense) => (
-                <li
-                  key={expense.id}
-                  className="flex items-center justify-between gap-4 p-4"
-                >
+                <li key={expense.id}>
+                  <Link
+                    href={`/split/expenses/${expense.id}`}
+                    className="flex items-center justify-between gap-4 p-4 transition-colors hover:bg-muted/40"
+                  >
                   <div className="flex min-w-0 items-center gap-3">
                     <div className="flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-lg bg-muted text-xs">
                       <span className="font-semibold leading-none">
@@ -124,6 +125,7 @@ export default async function SplitExpensesPage() {
                       </p>
                     </div>
                   </div>
+                  </Link>
                 </li>
               ))}
             </ul>
