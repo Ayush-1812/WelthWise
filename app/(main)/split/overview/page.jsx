@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Plus } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -9,35 +10,41 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { formatMoney } from "@/lib/format";
+import { getMyBalanceSummary } from "@/actions/split/balances";
 
 import { SPLIT_SECTIONS } from "../_components/split-nav";
+import { FriendAvatar } from "../friends/_components/friend-avatar";
 
-/**
- * Overview shell.
- *
- * The three balance tiles render zeroes until M8 derives real balances from the
- * ledger. They are laid out now so M8 only has to swap the data source, and so
- * the section is navigable while the rest is built.
- */
-export default function SplitOverviewPage() {
+export default async function SplitOverviewPage() {
+  const result = await getMyBalanceSummary();
+  const { totals, people, byGroup } = result.success
+    ? result.data
+    : { totals: { youOwe: 0, owedToYou: 0, net: 0 }, people: [], byGroup: [] };
+
   const summary = [
     {
       label: "You owe",
-      value: 0,
-      hint: "Total across all friends and groups",
-      className: "text-red-600",
+      value: totals.youOwe,
+      hint: "Across all friends and groups",
+      className: totals.youOwe > 0 ? "text-red-600" : "text-muted-foreground",
     },
     {
       label: "Owed to you",
-      value: 0,
+      value: totals.owedToYou,
       hint: "What others still need to pay back",
-      className: "text-green-600",
+      className:
+        totals.owedToYou > 0 ? "text-green-600" : "text-muted-foreground",
     },
     {
       label: "Net balance",
-      value: 0,
-      hint: "Owed to you minus what you owe",
-      className: "text-foreground",
+      value: totals.net,
+      hint: totals.net === 0 ? "You are all settled up" : "Owed to you minus what you owe",
+      className:
+        totals.net > 0
+          ? "text-green-600"
+          : totals.net < 0
+            ? "text-red-600"
+            : "text-muted-foreground",
     },
   ];
 
@@ -57,7 +64,7 @@ export default function SplitOverviewPage() {
             </CardHeader>
             <CardContent>
               <p className={`text-3xl font-bold ${className}`}>
-                {formatMoney(value)}
+                {formatMoney(Math.abs(value))}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
             </CardContent>
@@ -65,13 +72,111 @@ export default function SplitOverviewPage() {
         ))}
       </div>
 
-      <Card className="border-dashed">
-        <CardContent className="py-6 text-center text-sm text-muted-foreground">
-          Balances stay at zero until the ledger is live. Nothing here is
-          calculated yet - these tiles read from shared expenses and settlements
-          once M8 lands.
-        </CardContent>
-      </Card>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">Who owes whom</CardTitle>
+              <Link
+                href="/split/balances"
+                className="text-sm text-muted-foreground hover:text-foreground"
+              >
+                View all
+              </Link>
+            </div>
+            <CardDescription>
+              Netted across every group and direct expense.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {people.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                Nothing outstanding. Add a shared expense to get started.
+              </p>
+            ) : (
+              <ul className="divide-y">
+                {people.slice(0, 6).map(({ user, netBalance }) => (
+                  <li
+                    key={user.id}
+                    className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0"
+                  >
+                    <span className="flex min-w-0 items-center gap-2">
+                      <FriendAvatar user={user} size={30} />
+                      <span className="truncate text-sm">
+                        {user.name || user.email}
+                      </span>
+                    </span>
+                    <span
+                      className={`shrink-0 text-sm font-medium ${
+                        netBalance > 0 ? "text-green-600" : "text-red-600"
+                      }`}
+                    >
+                      {netBalance > 0 ? "owes you " : "you owe "}
+                      {formatMoney(Math.abs(netBalance))}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">Active groups</CardTitle>
+              <Link
+                href="/split/groups"
+                className="text-sm text-muted-foreground hover:text-foreground"
+              >
+                View all
+              </Link>
+            </div>
+            <CardDescription>Groups where you have a balance.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {byGroup.length === 0 ? (
+              <div className="flex flex-col items-center gap-3 py-4 text-center">
+                <p className="text-sm text-muted-foreground">
+                  No group balances yet.
+                </p>
+                <Link href="/split/expenses/new">
+                  <Button size="sm" variant="outline">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add an expense
+                  </Button>
+                </Link>
+              </div>
+            ) : (
+              <ul className="divide-y">
+                {byGroup.slice(0, 6).map(({ group, netBalance }) => (
+                  <li key={group.id}>
+                    <Link
+                      href={`/split/groups/${group.id}`}
+                      className="flex items-center justify-between gap-3 py-2.5"
+                    >
+                      <span className="flex min-w-0 items-center gap-2">
+                        <span aria-hidden="true" className="text-lg">
+                          {group.icon || "🧾"}
+                        </span>
+                        <span className="truncate text-sm">{group.name}</span>
+                      </span>
+                      <span
+                        className={`shrink-0 text-sm font-medium ${
+                          netBalance > 0 ? "text-green-600" : "text-red-600"
+                        }`}
+                      >
+                        {netBalance > 0 ? "+" : "-"}
+                        {formatMoney(Math.abs(netBalance))}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       <div>
         <h2 className="mb-4 text-lg font-semibold">Jump to a section</h2>

@@ -16,6 +16,8 @@ import {
   toFriendView,
 } from "@/lib/split/friends";
 import { canonicalPair } from "@/lib/split/access";
+import { pairwiseForUser } from "@/lib/split/balances";
+import { loadUserLedger } from "./balances";
 
 const USER_FIELDS = { id: true, name: true, email: true, imageUrl: true };
 
@@ -85,11 +87,15 @@ export async function getFriends() {
       orderBy: { updatedAt: "desc" },
     });
 
+    // Balances are derived from the ledger, never stored (task.md section 1).
+    const ledger = await loadUserLedger(me.id);
+    const perPerson = pairwiseForUser(ledger, me.id);
+
     const data = rows.map((row) => {
       const friend =
         row.requesterId === me.id ? row.addressee : row.requester;
-      // netBalance is derived from the ledger in M8; nothing to derive yet.
-      return toFriendView(row, me.id, friend, 0);
+      const net = perPerson.get(friend.id);
+      return toFriendView(row, me.id, friend, net ? net.toNumber() : 0);
     });
 
     return { success: true, data };

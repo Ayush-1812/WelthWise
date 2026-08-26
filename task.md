@@ -370,16 +370,16 @@ date → notes → save
 
 ---
 
-## M8 · Balance derivation
+## M8 · Balance derivation ✅ DONE
 
 **Files:** `actions/split/balances.js`, `lib/split/balances.js`
 
 **Work**
-- [ ] `computeNetBalances(scope)` implementing the §1 formula
-- [ ] `computePairwiseBalances(groupId)` — who owes whom, raw
-- [ ] Exclude `isDeleted` expenses
-- [ ] Totals: you owe / owed to you / net
-- [ ] Per-friend and per-group balances
+- [x] `computeNetBalances(scope)` implementing the §1 formula
+- [x] `computePairwiseBalances(groupId)` — who owes whom, raw
+- [x] Exclude `isDeleted` expenses
+- [x] Totals: you owe / owed to you / net
+- [x] Per-friend and per-group balances
 
 **Done when**
 - Σ net across a group === **0**, asserted in a test with randomized ledgers

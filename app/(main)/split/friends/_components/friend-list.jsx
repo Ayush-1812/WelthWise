@@ -58,7 +58,7 @@ export function FriendList({ friends = [], onChanged }) {
           Friends {friends.length > 0 && `(${friends.length})`}
         </CardTitle>
         <CardDescription>
-          Balances stay at zero until the shared-expense ledger goes live.
+          Net balance across every group and direct expense you share.
         </CardDescription>
       </CardHeader>
       <CardContent>
