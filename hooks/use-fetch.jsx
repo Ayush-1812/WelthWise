@@ -14,9 +14,13 @@ const useFetch = (cb) => {
       const response = await cb(...args);
       setData(response);
       setError(null);
+      // Returned as well as stored, so callers can react to one specific call
+      // without racing the state update. Existing callers ignore it.
+      return response;
     } catch (error) {
       setError(error);
       toast.error(error.message);
+      return undefined;
     } finally {
       setLoading(false);
     }

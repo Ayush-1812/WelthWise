@@ -49,6 +49,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { formatMoney } from "@/lib/format";
 import { categoryColors } from "@/data/categories";
 import { bulkDeleteTransactions } from "@/actions/account";
 import useFetch from "@/hooks/use-fetch";
@@ -175,14 +176,22 @@ export function TransactionTable({ transactions }) {
     )
       return;
 
-    deleteFn(selectedIds);
+    await deleteFn(selectedIds);
+    setSelectedIds([]);
   };
 
   useEffect(() => {
-    if (deleted && !deleteLoading) {
-      toast.error("Transactions deleted successfully");
+    if (!deleted || deleteLoading) return;
+
+    // bulkDeleteTransactions resolves with { success: false, error } on
+    // failure, so a truthy result is not on its own a success.
+    if (deleted.success) {
+      toast.success("Transactions deleted successfully");
+      router.refresh();
+    } else {
+      toast.error(deleted.error || "Failed to delete transactions");
     }
-  }, [deleted, deleteLoading]);
+  }, [deleted, deleteLoading, router]);
 
   const handleClearFilters = () => {
     setSearchTerm("");
@@ -377,8 +386,8 @@ export function TransactionTable({ transactions }) {
                         : "text-green-500"
                     )}
                   >
-                    {transaction.type === "EXPENSE" ? "-" : "+"}$
-                    {transaction.amount.toFixed(2)}
+                    {transaction.type === "EXPENSE" ? "-" : "+"}
+                    {formatMoney(transaction.amount)}
                   </TableCell>
                   <TableCell>
                     {transaction.isRecurring ? (

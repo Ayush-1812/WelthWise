@@ -7,6 +7,7 @@
     "email": "email dev",
     "build": "next build",
     "start": "next start",
+    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test \"lib/**/*.test.js\"",
     "lint": "eslint",
     "postinstall": "prisma generate"
   },
@@ -29,6 +30,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "decimal.js": "^10.6.0",
     "inngest": "^3.48.1",
     "lucide-react": "^0.562.0",
     "next": "15.2.8",

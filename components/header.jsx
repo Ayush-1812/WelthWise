@@ -1,7 +1,7 @@
 import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 import Image from "next/image";
-import {PenBox, LayoutDashboard } from "lucide-react";
+import {PenBox, LayoutDashboard, Users } from "lucide-react";
 import { Button } from "./ui/button";
 import {checkUser} from "@/lib/checkUser"
 
@@ -29,6 +29,15 @@ const Header =async () => {
               <Button variant="outline">
                 <LayoutDashboard size={18} />
                 <span className="hidden md:inline">Dashboard</span>
+              </Button>
+            </Link>
+            <Link
+              href={"/split"}
+              className="text-gray-600 hover:text-blue-600 flex items-center gap-2"
+            >
+              <Button variant="outline">
+                <Users size={18} />
+                <span className="hidden md:inline">Split Expenses</span>
               </Button>
             </Link>
             <Link href={"/transaction/create"}>

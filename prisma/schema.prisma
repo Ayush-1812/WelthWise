@@ -20,6 +20,21 @@ model User {
   budgets      Budget?
   transactions Transaction[]
 
+  // --- Split Expenses (M1) ---
+  friendshipsSent        Friendship[]             @relation("FriendshipRequester")
+  friendshipsReceived    Friendship[]             @relation("FriendshipAddressee")
+  friendshipsInitiated   Friendship[]             @relation("FriendshipInitiator")
+  groupsCreated          ExpenseGroup[]           @relation("GroupCreator")
+  groupMemberships       GroupMember[]
+  expensesPaid           SharedExpense[]          @relation("ExpensePayer")
+  expensesCreated        SharedExpense[]          @relation("ExpenseCreator")
+  expenseSplits          ExpenseSplit[]
+  settlementsSent        Settlement[]             @relation("SettlementFrom")
+  settlementsReceived    Settlement[]             @relation("SettlementTo")
+  splitActivity          SharedExpenseActivity[]  @relation("ActivityActor")
+  recurringSharedCreated RecurringSharedExpense[] @relation("RecurringCreator")
+  recurringSharedPaid    RecurringSharedExpense[] @relation("RecurringPayer")
+
   @@map("users")
 }
 
@@ -98,4 +113,284 @@ enum RecurringInterval {
   WEEKLY
   MONTHLY
   YEARLY
+}
+
+// ============================================================================
+// Split Expenses (M1)
+//
+// The ledger is the source of truth. Balances are NEVER stored - they are
+// derived from SharedExpense + ExpenseSplit + Settlement. See task.md section 1.
+// ============================================================================
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+  BLOCKED
+}
+
+enum GroupRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum SplitMethod {
+  EQUAL
+  EXACT
+  PERCENTAGE
+  SHARES
+  CUSTOM
+  ITEMIZED
+}
+
+enum SettlementMethod {
+  CASH
+  BANK_TRANSFER
+  UPI
+  EXTERNAL
+  OTHER
+}
+
+enum ActivityType {
+  GROUP_CREATED
+  MEMBER_ADDED
+  MEMBER_REMOVED
+  EXPENSE_ADDED
+  EXPENSE_EDITED
+  EXPENSE_DELETED
+  SETTLEMENT_RECORDED
+  RECURRING_CREATED
+  RECURRING_GENERATED
+}
+
+/// A friend link between two users.
+/// Store the pair canonically (smaller uuid as requesterId) so A->B and B->A
+/// cannot both exist; the unique constraint then enforces it.
+model Friendship {
+  id          String           @id @default(uuid())
+  /// requesterId/addresseeId are stored canonically (smaller uuid first) so the
+  /// unique constraint below makes reciprocal duplicates impossible. That
+  /// ordering is positional, NOT directional - it says nothing about who asked.
+  requesterId String
+  addresseeId String
+  /// Who actually sent the request. Required to tell an incoming request from
+  /// an outgoing one, which the canonical ordering deliberately discards.
+  initiatedById String
+  status      FriendshipStatus @default(PENDING)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  requester   User @relation("FriendshipRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  addressee   User @relation("FriendshipAddressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+  initiatedBy User @relation("FriendshipInitiator", fields: [initiatedById], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, addresseeId])
+  @@index([addresseeId])
+  @@index([status])
+  @@index([initiatedById])
+  @@map("friendships")
+}
+
+model ExpenseGroup {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  icon        String?
+  imageUrl    String?
+  createdById String
+  isArchived  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  createdBy   User                     @relation("GroupCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  members     GroupMember[]
+  expenses    SharedExpense[]
+  settlements Settlement[]
+  activity    SharedExpenseActivity[]
+  recurring   RecurringSharedExpense[]
+
+  @@index([createdById])
+  @@index([isArchived])
+  @@map("expense_groups")
+}
+
+/// Membership is soft-ended via leftAt so historical splits stay explainable.
+model GroupMember {
+  id       String    @id @default(uuid())
+  groupId  String
+  userId   String
+  role     GroupRole @default(MEMBER)
+  joinedAt DateTime  @default(now())
+  leftAt   DateTime?
+
+  group ExpenseGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@index([userId])
+  @@index([groupId, leftAt])
+  @@map("group_members")
+}
+
+/// One shared expense. groupId is null for a direct 1:1 friend expense, so
+/// group and friend expenses share one ledger and one balance formula.
+/// Soft-deleted (isDeleted) - hard deletes would orphan past settlements.
+model SharedExpense {
+  id          String      @id @default(uuid())
+  groupId     String?
+  description String
+  amount      Decimal
+  currency    String      @default("INR")
+  date        DateTime
+  category    String
+  notes       String?
+  tags        String[]    @default([])
+  receiptUrl  String?
+  splitMethod SplitMethod
+  paidById    String
+  createdById String
+  isDeleted   Boolean     @default(false)
+  deletedAt   DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  group     ExpenseGroup?           @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  paidBy    User                    @relation("ExpensePayer", fields: [paidById], references: [id], onDelete: Cascade)
+  createdBy User                    @relation("ExpenseCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  splits    ExpenseSplit[]
+  items     ExpenseItem[]
+  activity  SharedExpenseActivity[]
+
+  @@index([groupId])
+  @@index([paidById])
+  @@index([createdById])
+  @@index([date])
+  @@index([category])
+  @@index([groupId, isDeleted])
+  @@map("shared_expenses")
+}
+
+/// A participant share of one expense. This IS the participant row - the
+/// spec separate ExpenseParticipants table is merged in here so the two can
+/// never drift out of sync (task.md M1, decision 1).
+///
+/// shareAmount is the resolved rupee amount. shareInput preserves what the user
+/// actually typed (60 for 60 percent, 2 for 2 shares) so edits can round-trip.
+model ExpenseSplit {
+  id          String   @id @default(uuid())
+  expenseId   String
+  userId      String
+  shareAmount Decimal
+  shareInput  Decimal?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  expense SharedExpense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([expenseId, userId])
+  @@index([userId])
+  @@map("expense_splits")
+}
+
+/// Line items for an itemized split. Wired up in M21; the table exists now so
+/// that module does not need a second migration.
+model ExpenseItem {
+  id         String   @id @default(uuid())
+  expenseId  String
+  name       String
+  amount     Decimal
+  quantity   Int      @default(1)
+  /// User ids this line item is assigned to; shares derive from the assignment.
+  assignedTo String[] @default([])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  expense SharedExpense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+
+  @@index([expenseId])
+  @@map("expense_items")
+}
+
+/// A transfer of money between two users. NEVER income or expense - a
+/// settlement moves money that already exists in the ledger.
+model Settlement {
+  id         String           @id @default(uuid())
+  groupId    String?
+  fromUserId String
+  toUserId   String
+  amount     Decimal
+  currency   String           @default("INR")
+  method     SettlementMethod @default(EXTERNAL)
+  note       String?
+  settledAt  DateTime         @default(now())
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  group    ExpenseGroup?           @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  fromUser User                    @relation("SettlementFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser   User                    @relation("SettlementTo", fields: [toUserId], references: [id], onDelete: Cascade)
+  activity SharedExpenseActivity[]
+
+  @@index([groupId])
+  @@index([fromUserId])
+  @@index([toUserId])
+  @@index([settledAt])
+  @@map("settlements")
+}
+
+/// Template for a recurring shared expense. Wired up in M17.
+model RecurringSharedExpense {
+  id            String            @id @default(uuid())
+  groupId       String?
+  description   String
+  amount        Decimal
+  currency      String            @default("INR")
+  category      String
+  notes         String?
+  splitMethod   SplitMethod       @default(EQUAL)
+  /// Frozen participant/weight template: [{ userId, shareInput }]
+  splitTemplate Json
+  paidById      String
+  createdById   String
+  interval      RecurringInterval
+  /// Extra multiplier for custom cadences, e.g. interval=WEEKLY + every=2.
+  every         Int               @default(1)
+  nextRunDate   DateTime
+  lastRunAt     DateTime?
+  endDate       DateTime?
+  isActive      Boolean           @default(true)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  group     ExpenseGroup? @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  paidBy    User          @relation("RecurringPayer", fields: [paidById], references: [id], onDelete: Cascade)
+  createdBy User          @relation("RecurringCreator", fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([groupId])
+  @@index([paidById])
+  @@index([isActive, nextRunDate])
+  @@map("recurring_shared_expenses")
+}
+
+/// Append-only activity log. One row per ledger-mutating action (M15).
+model SharedExpenseActivity {
+  id           String       @id @default(uuid())
+  groupId      String?
+  actorId      String
+  type         ActivityType
+  expenseId    String?
+  settlementId String?
+  metadata     Json?
+  createdAt    DateTime     @default(now())
+
+  group      ExpenseGroup?  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  actor      User           @relation("ActivityActor", fields: [actorId], references: [id], onDelete: Cascade)
+  expense    SharedExpense? @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  settlement Settlement?    @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+
+  @@index([groupId, createdAt])
+  @@index([actorId])
+  @@index([expenseId])
+  @@map("shared_expense_activity")
 }

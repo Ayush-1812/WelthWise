@@ -12,11 +12,9 @@
 - 🤖 AI-powered financial insights and recommendations
 - 📈 Visual spending analytics and reports
 - 📅 Monthly financial summaries
-- 🔔 Automated recurring transaction reminders
-- 👥 SplitWise-style shared expense tracking and settlement
-- 💳 Group expense management
-- 🔄 Automatic balance calculation and debt simplification
-- 📧 Expense sharing via invite links
+- 🔔 Automated recurring transactions and budget alerts
+- 🧾 AI receipt scanning (Gemini vision)
+- 🔄 Automatic account balance calculation
 ---
 
 ## 🛠️ Tech Stack
@@ -124,18 +122,39 @@ npm install
 
 ### Configure Environment Variables
 
-Create a `.env` file.
+Copy `.env.example` to `.env` and fill in each value.
+
+```bash
+cp .env.example .env
+```
 
 ```env
-DATABASE_URL=
+# Database (Supabase Postgres)
+DATABASE_URL=          # pooled, port 6543 + pgbouncer
+DIRECT_URL=            # direct, port 5432 (Prisma Migrate)
 
+# Auth (Clerk)
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
 CLERK_SECRET_KEY=
 
+# Background jobs (Inngest)
+INNGEST_EVENT_KEY=
+INNGEST_SIGNING_KEY=
+
+# Rate limiting (Arcjet)
+ARCJET_KEY=
+
+# AI (Google Gemini) - needs billing enabled on the project
 GEMINI_API_KEY=
 
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
+# Email (Resend) - needs a verified domain to send to other addresses
+RESEND_API_KEY=
+```
+
+### Run migrations
+
+```bash
+npx prisma migrate dev
 ```
 
 ### Run locally
@@ -148,10 +167,11 @@ npm run dev
 
 ## 📈 Future Improvements
 
+- SplitWise-style shared expense tracking and settlement
+- Group expense management and debt simplification
+- Expense sharing via invite links
 - Redis caching for dashboard analytics
-- Email notifications
 - Multi-currency support
-- OCR receipt scanning
 - Investment portfolio tracking
 - Export reports as PDF
 - Financial goal prediction using AI

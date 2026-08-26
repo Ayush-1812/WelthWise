@@ -12,11 +12,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { updateDefaultAccount } from "@/actions/account";
+import { formatMoney } from "@/lib/format";
 import { toast } from "sonner";
 
 export function AccountCard({ account }) {
   const { name, type, balance, id, isDefault } = account;
+  const router = useRouter();
 
   const {
     loading: updateDefaultLoading,
@@ -37,10 +40,14 @@ export function AccountCard({ account }) {
   };
 
   useEffect(() => {
-    if (updatedAccount?.success) {
+    if (!updatedAccount) return;
+    if (updatedAccount.success) {
       toast.success("Default account updated successfully");
+      router.refresh();
+    } else {
+      toast.error(updatedAccount.error || "Failed to update default account");
     }
-  }, [updatedAccount]);
+  }, [updatedAccount, router]);
 
   useEffect(() => {
     if (error) {
@@ -62,9 +69,7 @@ export function AccountCard({ account }) {
           />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">
-            ${parseFloat(balance).toFixed(2)}
-          </div>
+          <div className="text-2xl font-bold">{formatMoney(balance)}</div>
           <p className="text-xs text-muted-foreground">
             {type.charAt(0) + type.slice(1).toLowerCase()} Account
           </p>

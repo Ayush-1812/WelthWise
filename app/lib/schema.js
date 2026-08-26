@@ -29,3 +29,48 @@ export const transactionSchema = z
       });
     }
   });
+// --- Split Expenses (M7) ---------------------------------------------------
+
+export const SPLIT_METHOD_VALUES = [
+  "EQUAL",
+  "EXACT",
+  "PERCENTAGE",
+  "SHARES",
+  "CUSTOM",
+  "ITEMIZED",
+];
+
+export const sharedExpenseSchema = z
+  .object({
+    description: z.string().min(1, "Description is required").max(140),
+    amount: z.string().min(1, "Amount is required"),
+    date: z.date({ required_error: "Date is required" }),
+    category: z.string().min(1, "Category is required"),
+    // null for a direct 1:1 friend expense
+    groupId: z.string().nullable().optional(),
+    paidById: z.string().min(1, "Select who paid"),
+    participantIds: z
+      .array(z.string())
+      .min(1, "Select at least one participant"),
+    splitMethod: z.enum(SPLIT_METHOD_VALUES),
+    // per-participant input, keyed by user id; meaning depends on splitMethod
+    splitValues: z.record(z.string(), z.union([z.string(), z.number()])).optional(),
+    notes: z.string().max(500).optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (!data.participantIds.includes(data.paidById)) {
+      // The payer need not have a share, but must be part of the expense.
+      ctx.addIssue({
+        code: "custom",
+        message: "The payer must be one of the participants",
+        path: ["paidById"],
+      });
+    }
+    if (new Set(data.participantIds).size !== data.participantIds.length) {
+      ctx.addIssue({
+        code: "custom",
+        message: "The same participant is selected twice",
+        path: ["participantIds"],
+      });
+    }
+  });

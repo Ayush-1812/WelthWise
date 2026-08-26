@@ -31,10 +31,16 @@ useEffect(() => {
 }, [onScanComplete]);
 
 useEffect(() => {
-  if (scannedData && !scanReceiptLoading) {
-    onScanRef.current(scannedData); // stable ref call
-    toast.success("Receipt scanned successfully");
+  if (!scannedData || scanReceiptLoading) return;
+
+  // Gemini returns {} when the image is not a receipt, which parses into
+  // NaN / Invalid Date. Reject that instead of writing it into the form.
+  if (!Number.isFinite(scannedData.amount)) {
+    toast.error("Couldn't read a receipt from that image");
+    return;
   }
+
+  onScanRef.current(scannedData); // stable ref call
 }, [scanReceiptLoading, scannedData]);
 
 

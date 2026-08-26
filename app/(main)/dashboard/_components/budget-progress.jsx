@@ -5,7 +5,7 @@ import { Pencil, Check, X } from "lucide-react";
 import useFetch from "@/hooks/use-fetch";
 import { toast } from "sonner";
 import { updateBudget } from "@/actions/budget";
-if (!updateBudget) throw new Error("updateBudget is undefined");
+import { formatMoney } from "@/lib/format";
 
 import {
   Card,
@@ -105,9 +105,9 @@ export function BudgetProgress({ initialBudget, currentExpenses }) {
               <>
                 <CardDescription>
                   {initialBudget
-                    ? `$${currentExpenses.toFixed(
-                        2
-                      )} of $${initialBudget.amount.toFixed(2)} spent`
+                    ? `${formatMoney(currentExpenses)} of ${formatMoney(
+                        initialBudget.amount
+                      )} spent`
                     : "No budget set"}
                 </CardDescription>
                 <Button

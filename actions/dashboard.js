@@ -48,7 +48,9 @@ export async function getUserAccounts() {
 
     return serializedAccounts;
   } catch (error) {
-    console.error(error.message);
+    // Returning undefined here crashes the dashboard on `accounts.length`.
+    console.error("Error fetching accounts:", error.message);
+    return [];
   }
 }
 

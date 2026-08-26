@@ -71,10 +71,8 @@ export function CreateAccountDrawer({ children }) {
       toast.error(error.message || "Failed to create account");
     }
   }, [error]);
-  // eslint-disable-next-line react-hooks/incompatible-library
-const type = watch("type");
-// eslint-disable-next-line react-hooks/incompatible-library
-const isDefault = watch("isDefault");
+  const type = watch("type");
+  const isDefault = watch("isDefault");
 
 
   return (

@@ -3,10 +3,11 @@ import { getAccountWithTransactions } from "@/actions/account";
 import { BarLoader } from "react-spinners";
 import { TransactionTable } from "../_components/transaction-table";
 import { notFound } from "next/navigation";
+import { formatMoney } from "@/lib/format";
 import { AccountChart } from "../_components/account-chart";
 
 export default async function AccountPage({ params }) {
-   const { id } = params;
+  const { id } = await params;
   const accountData = await getAccountWithTransactions(id);
 
   if (!accountData) {
@@ -30,7 +31,7 @@ export default async function AccountPage({ params }) {
 
         <div className="text-right pb-2">
           <div className="text-xl sm:text-2xl font-bold">
-            ${parseFloat(account.balance).toFixed(2)}
+            {formatMoney(account.balance)}
           </div>
           <p className="text-sm text-muted-foreground">
             {account._count.transactions} Transactions

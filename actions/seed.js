@@ -1,10 +1,8 @@
 "use server";
 
+import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/prisma";
 import { subDays } from "date-fns";
-
-const ACCOUNT_ID = "61150679-5a18-4cbe-ac9a-993db10e1466";
-const USER_ID = "946dde9a-e1dd-4bb9-a1b1-4ff94a9c6b8d";
 
 // Categories with their typical amount ranges
 const CATEGORIES = {
@@ -43,6 +41,21 @@ function getRandomCategory(type) {
 
 export async function seedTransactions() {
   try {
+    // Seed only the calling user's own default account - never a hardcoded one.
+    const { userId } = await auth();
+    if (!userId) throw new Error("Unauthorized");
+
+    const user = await db.user.findUnique({ where: { clerkUserId: userId } });
+    if (!user) throw new Error("User not found");
+
+    const account = await db.account.findFirst({
+      where: { userId: user.id, isDefault: true },
+    });
+    if (!account) throw new Error("No default account to seed");
+
+    const USER_ID = user.id;
+    const ACCOUNT_ID = account.id;
+
     // Generate 90 days of transactions
     const transactions = [];
     let totalBalance = 0;
@@ -81,9 +94,9 @@ export async function seedTransactions() {
 
     // Insert transactions in batches and update account balance
     await db.$transaction(async (tx) => {
-      // Clear existing transactions
+      // Clear existing transactions (scoped to this user's own account)
       await tx.transaction.deleteMany({
-        where: { accountId: ACCOUNT_ID },
+        where: { accountId: ACCOUNT_ID, userId: USER_ID },
       });
 
       // Insert new transactions

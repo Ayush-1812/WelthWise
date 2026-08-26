@@ -27,6 +27,7 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { CreateAccountDrawer } from "@/components/create-account-drawer";
 import { cn } from "@/lib/utils";
+import { formatMoney } from "@/lib/format";
 import { createTransaction, updateTransaction } from "@/actions/transaction";
 import { transactionSchema } from "@/app/lib/schema";
 import { ReceiptScanner } from "./recipt-scanner";
@@ -96,17 +97,22 @@ export function AddTransactionForm({
   };
 
   const handleScanComplete = (scannedData) => {
-    if (scannedData) {
-      setValue("amount", scannedData.amount.toString());
-      setValue("date", new Date(scannedData.date));
-      if (scannedData.description) {
-        setValue("description", scannedData.description);
-      }
-      if (scannedData.category) {
-        setValue("category", scannedData.category);
-      }
-      toast.success("Receipt scanned successfully");
+    if (!scannedData) return;
+
+    setValue("amount", scannedData.amount.toString());
+
+    // Gemini can return an unparseable date even on a valid receipt.
+    const scannedDate = new Date(scannedData.date);
+    if (!Number.isNaN(scannedDate.getTime())) {
+      setValue("date", scannedDate);
     }
+    if (scannedData.description) {
+      setValue("description", scannedData.description);
+    }
+    if (scannedData.category) {
+      setValue("category", scannedData.category);
+    }
+    toast.success("Receipt scanned successfully");
   };
 
   useEffect(() => {
@@ -121,12 +127,9 @@ export function AddTransactionForm({
     }
   }, [transactionResult, transactionLoading, editMode,reset, router]);
 
-  // eslint-disable-next-line react-hooks/incompatible-library
-const type = watch("type");
-// eslint-disable-next-line react-hooks/incompatible-library
-const isRecurring = watch("isRecurring");
-// eslint-disable-next-line react-hooks/incompatible-library
-const date = watch("date");
+  const type = watch("type");
+  const isRecurring = watch("isRecurring");
+  const date = watch("date");
 
 
   const filteredCategories = categories.filter(
@@ -185,7 +188,7 @@ const date = watch("date");
             <SelectContent>
               {accounts.map((account) => (
                 <SelectItem key={account.id} value={account.id}>
-                  {account.name} (${parseFloat(account.balance).toFixed(2)})
+                  {account.name} ({formatMoney(account.balance)})
                 </SelectItem>
               ))}
               <CreateAccountDrawer>
