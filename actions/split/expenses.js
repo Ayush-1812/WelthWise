@@ -18,11 +18,16 @@ import {
   syncExpenseToPersonal,
   unsyncExpenseFromPersonal,
 } from "./personal-sync";
+import { queuePersonalised, deliverEmailsInBackground } from "./notify";
 import { sharedExpenseSchema } from "@/app/lib/schema";
 
 const USER_FIELDS = { id: true, name: true, email: true, imageUrl: true };
 
 function fail(error) {
+  // Next probes server components for static renderability; that probe throws
+  // DYNAMIC_SERVER_USAGE. Rethrow so Next can mark the route dynamic instead of
+  // swallowing it into a failed result and logging a misleading error.
+  if (error?.digest === "DYNAMIC_SERVER_USAGE") throw error;
   if (error instanceof AccessError || error instanceof SplitError) {
     return { success: false, error: error.message };
   }
@@ -156,6 +161,8 @@ export async function createSharedExpense(input) {
       throw new SplitError(check.errors[0]);
     }
 
+    const notifyEmails = [];
+
     const expense = await db.$transaction(async (tx) => {
       const created = await tx.sharedExpense.create({
         data: {
@@ -196,8 +203,45 @@ export async function createSharedExpense(input) {
         });
       }
 
+      await tx.sharedExpenseActivity.create({
+        data: {
+          groupId,
+          actorId: me.id,
+          type: "EXPENSE_ADDED",
+          expenseId: created.id,
+          metadata: {
+            description: data.description.trim(),
+            amount: amount.toFixed(2),
+            participantCount: participantIds.length,
+          },
+        },
+      });
+
+      // Each participant gets their own share in the message, so the
+      // notification is built per recipient rather than once for everyone.
+      notifyEmails.push(
+        ...(await queuePersonalised(tx, {
+          type: "EXPENSE_ADDED",
+          actorId: me.id,
+          entries: splits.map((s) => ({
+            userId: s.userId,
+            context: {
+              actor: me,
+              expense: {
+                id: created.id,
+                description: created.description,
+                amount,
+              },
+              myShare: s.shareAmount,
+            },
+          })),
+        }))
+      );
+
       return created;
     });
+
+    deliverEmailsInBackground(notifyEmails);
 
     revalidatePath("/split/expenses");
     revalidatePath("/split/overview");
@@ -531,6 +575,19 @@ export async function updateSharedExpense(expenseId, input) {
         date: data.date,
       });
 
+      await queuePersonalised(tx, {
+        type: "EXPENSE_EDITED",
+        actorId: me.id,
+        entries: splits.map((s) => ({
+          userId: s.userId,
+          context: {
+            actor: me,
+            expense: { id: expenseId, description: data.description.trim(), amount },
+            myShare: s.shareAmount,
+          },
+        })),
+      });
+
       await tx.sharedExpenseActivity.create({
         data: {
           groupId: existing.groupId,
@@ -610,6 +667,18 @@ export async function deleteSharedExpense(expenseId, { confirm = false } = {}) {
 
       // The cash never really left, so reverse the personal rows too (M12).
       await unsyncExpenseFromPersonal(tx, { expenseId, userId: me.id });
+
+      await queuePersonalised(tx, {
+        type: "EXPENSE_DELETED",
+        actorId: me.id,
+        entries: existing.splits.map((s) => ({
+          userId: s.userId,
+          context: {
+            actor: me,
+            expense: { id: expenseId, description: existing.description },
+          },
+        })),
+      });
 
       await tx.sharedExpenseActivity.create({
         data: {

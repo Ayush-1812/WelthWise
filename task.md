@@ -513,30 +513,30 @@ Consider building it behind a flag and reconciling against a known dataset first
 
 ---
 
-## M15 · Activity feed
+## M15 · Activity feed ✅ DONE
 
-- [ ] Write `SharedExpenseActivity` rows from M5, M7, M10, M11
-- [ ] Group activity tab, reverse-chronological, paginated
-- [ ] Human strings: "Ayush added ₹2,000 hotel expense", "Priya settled ₹500 with Ayush"
+- [x] Write `SharedExpenseActivity` rows from M5, M7, M10, M11
+- [x] Group activity tab, reverse-chronological, paginated
+- [x] Human strings: "Ayush added ₹2,000 hotel expense", "Priya settled ₹500 with Ayush"
 
 **Done when** every ledger-mutating action produces exactly one activity row.
 
 ---
 
-## M16 · Notification infrastructure ⚠ net-new
+## M16 · Notification infrastructure ✅ DONE
 
 **There is nothing to reuse here.** The app has `sonner` toasts and Resend email
 fired from Inngest. There is no persisted, user-facing notification system.
 
 **Work**
-- [ ] `Notification` model: `userId`, `type`, `title`, `body`, `linkUrl`,
+- [x] `Notification` model: `userId`, `type`, `title`, `body`, `linkUrl`,
       `readAt?`, `metadata Json?`
-- [ ] Server action to create; bell UI in the header with unread count
-- [ ] Mark read / mark all read
-- [ ] Email for high-value events via the existing Resend + Inngest path
-- [ ] Extend `emails/template.jsx` (currently only `monthly-report` and
+- [x] Server action to create; bell UI in the header with unread count
+- [x] Mark read / mark all read
+- [x] Email for high-value events via the existing Resend + Inngest path
+- [x] Extend `emails/template.jsx` (currently only `monthly-report` and
       `budget-alert`) with shared-expense branches
-- [ ] Triggers: added to group, friend request, expense added, expense edited,
+- [x] Triggers: added to group, friend request, expense added, expense edited,
       settlement, partial settlement, recurring created/generated, reminder due
 
 **Done when** each trigger creates exactly one notification, and email failures

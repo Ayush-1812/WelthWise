@@ -34,6 +34,8 @@ model User {
   splitActivity          SharedExpenseActivity[]  @relation("ActivityActor")
   recurringSharedCreated RecurringSharedExpense[] @relation("RecurringCreator")
   recurringSharedPaid    RecurringSharedExpense[] @relation("RecurringPayer")
+  notifications          Notification[]           @relation("NotificationRecipient")
+  notificationsTriggered Notification[]           @relation("NotificationActor")
 
   @@map("users")
 }
@@ -408,4 +410,53 @@ model SharedExpenseActivity {
   @@index([actorId])
   @@index([expenseId])
   @@map("shared_expense_activity")
+}
+
+// ============================================================================
+// Notifications (M16)
+//
+// Net-new: the app had only ephemeral sonner toasts and Resend email. In-app
+// notifications are the source of truth and are written inside the same
+// transaction as the event, so each trigger produces exactly one row. Email is
+// sent afterwards, best-effort, and its failure never affects this table.
+// ============================================================================
+
+enum NotificationType {
+  FRIEND_REQUEST
+  FRIEND_ACCEPTED
+  GROUP_ADDED
+  GROUP_REMOVED
+  EXPENSE_ADDED
+  EXPENSE_EDITED
+  EXPENSE_DELETED
+  SETTLEMENT_RECEIVED
+  SETTLEMENT_PARTIAL
+  RECURRING_CREATED
+  RECURRING_GENERATED
+  PAYMENT_REMINDER
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  /// Who receives it.
+  userId    String
+  /// Who caused it. Null for system-generated events such as a recurring run.
+  actorId   String?
+  type      NotificationType
+  title     String
+  body      String?
+  /// Where clicking it should go.
+  linkUrl   String?
+  readAt    DateTime?
+  metadata  Json?
+  createdAt DateTime         @default(now())
+
+  user  User  @relation("NotificationRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  actor User? @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  /// Unread badge query.
+  @@index([userId, readAt])
+  /// Feed query.
+  @@index([userId, createdAt])
+  @@map("notifications")
 }

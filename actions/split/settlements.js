@@ -19,10 +19,15 @@ import {
 
 import { loadUserLedger } from "./balances";
 import { syncSettlementToPersonal } from "./personal-sync";
+import { queueNotifications, deliverEmailsInBackground } from "./notify";
 
 const USER_FIELDS = { id: true, name: true, email: true, imageUrl: true };
 
 function fail(error) {
+  // Next probes server components for static renderability; that probe throws
+  // DYNAMIC_SERVER_USAGE. Rethrow so Next can mark the route dynamic instead of
+  // swallowing it into a failed result and logging a misleading error.
+  if (error?.digest === "DYNAMIC_SERVER_USAGE") throw error;
   if (error instanceof AccessError || error instanceof SettlementError) {
     return { success: false, error: error.message };
   }
@@ -126,6 +131,8 @@ export async function createSettlement({
       method,
     });
 
+    const settlementEmails = [];
+
     await db.$transaction(async (tx) => {
       const settlement = await tx.settlement.create({
         data: {
@@ -152,16 +159,38 @@ export async function createSettlement({
         date: settlement.settledAt,
       });
 
+      // Only the person receiving the money needs telling, and the wording
+      // differs depending on whether it clears the balance.
+      settlementEmails.push(
+        ...(await queueNotifications(tx, {
+          type: isFull ? "SETTLEMENT_RECEIVED" : "SETTLEMENT_PARTIAL",
+          recipientIds: [direction.toUserId],
+          actorId: me.id,
+          context: {
+            actor: direction.fromUserId === me.id ? me : other,
+            amount: value,
+            remaining,
+          },
+        }))
+      );
+
       await tx.sharedExpenseActivity.create({
         data: {
           groupId,
           actorId: me.id,
           type: "SETTLEMENT_RECORDED",
           settlementId: settlement.id,
-          metadata: { amount: value.toFixed(2), method },
+          metadata: {
+            amount: value.toFixed(2),
+            method,
+            fromUserId: direction.fromUserId,
+            toUserId: direction.toUserId,
+          },
         },
       });
     });
+
+    deliverEmailsInBackground(settlementEmails);
 
     revalidatePath("/split/settlements");
     revalidatePath("/split/balances");

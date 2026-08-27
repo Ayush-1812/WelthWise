@@ -20,6 +20,10 @@ import {
 const USER_FIELDS = { id: true, name: true, email: true, imageUrl: true };
 
 function fail(error) {
+  // Next probes server components for static renderability; that probe throws
+  // DYNAMIC_SERVER_USAGE. Rethrow so Next can mark the route dynamic instead of
+  // swallowing it into a failed result and logging a misleading error.
+  if (error?.digest === "DYNAMIC_SERVER_USAGE") throw error;
   if (error instanceof AccessError) return { success: false, error: error.message };
   console.error("[split/balances]", error);
   return { success: false, error: error.message ?? "Something went wrong" };

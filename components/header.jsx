@@ -4,9 +4,16 @@ import Image from "next/image";
 import {PenBox, LayoutDashboard, Users } from "lucide-react";
 import { Button } from "./ui/button";
 import {checkUser} from "@/lib/checkUser"
+import { getUnreadCount } from "@/actions/split/notifications";
+import { NotificationBell } from "./notification-bell";
 
-const Header =async () => {
+const Header = async () => {
   await checkUser();
+
+  // getUnreadCount never throws - the header must not break because
+  // notifications are unavailable.
+  const unread = await getUnreadCount();
+  const unreadCount = unread.success ? unread.data.count : 0;
   return (
     <div className="fixed top-0 w-full bg-white/80 backdrop-blur-md z-50 border-b">
       <nav className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -55,6 +62,10 @@ const Header =async () => {
             <Button variant="outline">Login</Button>
           </SignInButton>
         </SignedOut>
+
+        <SignedIn>
+          <NotificationBell initialUnread={unreadCount} />
+        </SignedIn>
 
         <SignedIn>
           <UserButton

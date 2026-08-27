@@ -23,10 +23,15 @@ import {
   sortMembers,
 } from "@/lib/split/groups";
 import { computeNetBalances, netBalanceFor } from "@/lib/split/balances";
+import { queueNotifications, deliverEmailsInBackground } from "./notify";
 
 const USER_FIELDS = { id: true, name: true, email: true, imageUrl: true };
 
 function fail(error) {
+  // Next probes server components for static renderability; that probe throws
+  // DYNAMIC_SERVER_USAGE. Rethrow so Next can mark the route dynamic instead of
+  // swallowing it into a failed result and logging a misleading error.
+  if (error?.digest === "DYNAMIC_SERVER_USAGE") throw error;
   if (error instanceof AccessError) return { success: false, error: error.message };
   console.error("[split/groups]", error);
   return { success: false, error: error.message ?? "Something went wrong" };
@@ -187,20 +192,59 @@ export async function createGroup(input) {
       }
     }
 
-    const group = await db.expenseGroup.create({
-      data: {
-        name,
-        description,
-        icon,
-        createdById: me.id,
-        members: {
-          create: [
-            { userId: me.id, role: "OWNER" },
-            ...memberIds.map((userId) => ({ userId, role: "MEMBER" })),
-          ],
+    const emails = [];
+
+    const group = await db.$transaction(async (tx) => {
+      const created = await tx.expenseGroup.create({
+        data: {
+          name,
+          description,
+          icon,
+          createdById: me.id,
+          members: {
+            create: [
+              { userId: me.id, role: "OWNER" },
+              ...memberIds.map((userId) => ({ userId, role: "MEMBER" })),
+            ],
+          },
         },
-      },
+      });
+
+      await tx.sharedExpenseActivity.create({
+        data: {
+          groupId: created.id,
+          actorId: me.id,
+          type: "GROUP_CREATED",
+          metadata: { name: created.name },
+        },
+      });
+
+      // Members added at creation are part of the same story.
+      if (memberIds.length > 0) {
+        await tx.sharedExpenseActivity.create({
+          data: {
+            groupId: created.id,
+            actorId: me.id,
+            type: "MEMBER_ADDED",
+            metadata: { memberIds },
+          },
+        });
+
+        emails.push(
+          ...(await queueNotifications(tx, {
+            type: "GROUP_ADDED",
+            recipientIds: memberIds,
+            actorId: me.id,
+            context: { actor: me, group: created },
+          }))
+        );
+      }
+
+      return created;
     });
+
+    // Email after the transaction commits, so a bounce cannot roll it back.
+    deliverEmailsInBackground(emails);
 
     revalidatePath("/split/groups");
     return { success: true, data: { id: group.id, name: group.name } };
@@ -254,17 +298,44 @@ export async function addGroupMembers(groupId, userIds) {
       }
     }
 
+    const addedEmails = [];
+
     // upsert handles the rejoin case: @@unique([groupId, userId]) means a
     // member who previously left must be reactivated, not inserted again.
-    await db.$transaction(
-      wanted.map((userId) =>
-        db.groupMember.upsert({
+    await db.$transaction(async (tx) => {
+      for (const userId of wanted) {
+        await tx.groupMember.upsert({
           where: { groupId_userId: { groupId, userId } },
           create: { groupId, userId, role: "MEMBER" },
           update: { leftAt: null },
-        })
-      )
-    );
+        });
+      }
+
+      await tx.sharedExpenseActivity.create({
+        data: {
+          groupId,
+          actorId: me.id,
+          type: "MEMBER_ADDED",
+          metadata: { memberIds: wanted },
+        },
+      });
+
+      const group = await tx.expenseGroup.findUnique({
+        where: { id: groupId },
+        select: { id: true, name: true },
+      });
+
+      addedEmails.push(
+        ...(await queueNotifications(tx, {
+          type: "GROUP_ADDED",
+          recipientIds: wanted,
+          actorId: me.id,
+          context: { actor: me, group },
+        }))
+      );
+    });
+
+    deliverEmailsInBackground(addedEmails);
 
     revalidatePath(`/split/groups/${groupId}`);
     return { success: true };
@@ -322,9 +393,24 @@ export async function removeGroupMember(groupId, targetUserId) {
 
     // Soft removal: the row and their past splits stay, so history and any
     // settlement that referenced them remain explainable.
-    await db.groupMember.update({
-      where: { groupId_userId: { groupId, userId: targetUserId } },
-      data: { leftAt: new Date() },
+    await db.$transaction(async (tx) => {
+      await tx.groupMember.update({
+        where: { groupId_userId: { groupId, userId: targetUserId } },
+        data: { leftAt: new Date() },
+      });
+
+      await tx.sharedExpenseActivity.create({
+        data: {
+          groupId,
+          actorId: me.id,
+          type: "MEMBER_REMOVED",
+          metadata: {
+            targetUserId,
+            // Leaving and being removed read very differently in the feed.
+            self: targetUserId === me.id,
+          },
+        },
+      });
     });
 
     revalidatePath("/split/groups");

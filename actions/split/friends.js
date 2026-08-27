@@ -18,6 +18,7 @@ import {
 import { canonicalPair } from "@/lib/split/access";
 import { pairwiseForUser } from "@/lib/split/balances";
 import { loadUserLedger } from "./balances";
+import { queueNotifications } from "./notify";
 
 const USER_FIELDS = { id: true, name: true, email: true, imageUrl: true };
 
@@ -27,6 +28,10 @@ const involving = (userId) => ({
 });
 
 function fail(error) {
+  // Next probes server components for static renderability; that probe throws
+  // DYNAMIC_SERVER_USAGE. Rethrow so Next can mark the route dynamic instead of
+  // swallowing it into a failed result and logging a misleading error.
+  if (error?.digest === "DYNAMIC_SERVER_USAGE") throw error;
   // AccessError messages are already user-facing; anything else is unexpected.
   if (error instanceof AccessError) return { success: false, error: error.message };
   console.error("[split/friends]", error);
@@ -181,10 +186,19 @@ export async function sendFriendRequest(targetUserId) {
 
     // upsert, not create: a previously removed pair leaves no row, but a
     // concurrent request could. Either way we end up with one PENDING row.
-    await db.friendship.upsert({
-      where: { requesterId_addresseeId: { requesterId, addresseeId } },
-      create: row,
-      update: { status: "PENDING", initiatedById: me.id },
+    await db.$transaction(async (tx) => {
+      await tx.friendship.upsert({
+        where: { requesterId_addresseeId: { requesterId, addresseeId } },
+        create: row,
+        update: { status: "PENDING", initiatedById: me.id },
+      });
+
+      await queueNotifications(tx, {
+        type: "FRIEND_REQUEST",
+        recipientIds: [target.id],
+        actorId: me.id,
+        context: { actor: me },
+      });
     });
 
     revalidatePath("/split/friends");
@@ -204,9 +218,21 @@ export async function acceptFriendRequest(friendshipId) {
       throw new AccessError(ACCESS_CODES.NOT_FOUND, "Friend request not found");
     }
 
-    await db.friendship.update({
-      where: { id: friendship.id },
-      data: { status: "ACCEPTED" },
+    // The other party asked; tell them it was accepted.
+    const otherId = otherUserId(friendship, me.id);
+
+    await db.$transaction(async (tx) => {
+      await tx.friendship.update({
+        where: { id: friendship.id },
+        data: { status: "ACCEPTED" },
+      });
+
+      await queueNotifications(tx, {
+        type: "FRIEND_ACCEPTED",
+        recipientIds: [otherId],
+        actorId: me.id,
+        context: { actor: me },
+      });
     });
 
     revalidatePath("/split/friends");
