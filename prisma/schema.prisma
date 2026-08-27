@@ -266,8 +266,16 @@ model SharedExpense {
   createdById String
   isDeleted   Boolean     @default(false)
   deletedAt   DateTime?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+
+  // --- Recurring generation (M17) ---
+  /// The template that generated this expense, if any.
+  recurringId String?
+  /// Stable identifier for the occurrence, e.g. the scheduled run date.
+  /// Combined with recurringId this is UNIQUE, so a retried or duplicated
+  /// cron run physically cannot create the same occurrence twice.
+  periodKey   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   group                ExpenseGroup?           @relation(fields: [groupId], references: [id], onDelete: Cascade)
   paidBy               User                    @relation("ExpensePayer", fields: [paidById], references: [id], onDelete: Cascade)
@@ -276,13 +284,16 @@ model SharedExpense {
   items                ExpenseItem[]
   personalTransactions Transaction[]
   activity             SharedExpenseActivity[]
+  recurring            RecurringSharedExpense? @relation(fields: [recurringId], references: [id], onDelete: SetNull)
 
+  @@unique([recurringId, periodKey])
   @@index([groupId])
   @@index([paidById])
   @@index([createdById])
   @@index([date])
   @@index([category])
   @@index([groupId, isDeleted])
+  @@index([recurringId])
   @@map("shared_expenses")
 }
 
@@ -380,9 +391,10 @@ model RecurringSharedExpense {
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 
-  group     ExpenseGroup? @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  paidBy    User          @relation("RecurringPayer", fields: [paidById], references: [id], onDelete: Cascade)
-  createdBy User          @relation("RecurringCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  group     ExpenseGroup?   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  generated SharedExpense[]
+  paidBy    User            @relation("RecurringPayer", fields: [paidById], references: [id], onDelete: Cascade)
+  createdBy User            @relation("RecurringCreator", fields: [createdById], references: [id], onDelete: Cascade)
 
   @@index([groupId])
   @@index([paidById])
