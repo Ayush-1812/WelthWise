@@ -159,9 +159,92 @@ export const defaultCategories = [
     color: "#94a3b8", // slate-400
     icon: "MoreHorizontal",
   },
+  {
+    id: "rent",
+    name: "Rent",
+    type: "EXPENSE",
+    color: "#a855f7", // purple-500
+    icon: "KeyRound",
+    subcategories: ["Rent", "Maintenance", "Deposit"],
+  },
+  {
+    id: "hotel",
+    name: "Hotel",
+    type: "EXPENSE",
+    color: "#0ea5e9", // sky-500
+    icon: "BedDouble",
+    subcategories: ["Hotels", "Hostels", "Homestays"],
+  },
+
+  // --- System categories (M14) -------------------------------------------
+  // Used by the Split Expenses ledger for cash movements that are NOT personal
+  // consumption. Marked as system so they never appear in a category picker,
+  // and always written with isTransfer=true so analytics skip them entirely.
+  {
+    id: "shared-lent",
+    name: "Paid for others",
+    type: "EXPENSE",
+    color: "#64748b", // slate-500
+    icon: "HandCoins",
+    system: true,
+  },
+  {
+    id: "shared-settlement",
+    name: "Settlement",
+    type: "EXPENSE",
+    color: "#64748b", // slate-500
+    icon: "ArrowLeftRight",
+    system: true,
+  },
+  {
+    id: "shared-settlement-received",
+    name: "Settlement received",
+    type: "INCOME",
+    color: "#64748b", // slate-500
+    icon: "ArrowLeftRight",
+    system: true,
+  },
 ];
 
 export const categoryColors = defaultCategories.reduce((acc, category) => {
   acc[category.id] = category.color;
   return acc;
 }, {});
+
+/** Categories a user may pick. System buckets are ledger plumbing, not choices. */
+export const selectableCategories = defaultCategories.filter((c) => !c.system);
+
+export const expenseCategories = selectableCategories.filter(
+  (c) => c.type === "EXPENSE"
+);
+export const incomeCategories = selectableCategories.filter(
+  (c) => c.type === "INCOME"
+);
+
+const categoriesById = defaultCategories.reduce((acc, category) => {
+  acc[category.id] = category;
+  return acc;
+}, {});
+
+/** Look up a category by id, including system ones. */
+export function getCategory(id) {
+  return categoriesById[id] ?? null;
+}
+
+/**
+ * Display name for a category id. Falls back to the raw id rather than
+ * rendering nothing, so an unknown value stays visible instead of blank.
+ */
+export function categoryName(id) {
+  return categoriesById[id]?.name ?? id ?? "Uncategorised";
+}
+
+/** Colour for a category id, with a neutral fallback. */
+export function categoryColor(id) {
+  return categoriesById[id]?.color ?? "#94a3b8";
+}
+
+/** True when a category is ledger plumbing rather than a user choice. */
+export function isSystemCategory(id) {
+  return Boolean(categoriesById[id]?.system);
+}

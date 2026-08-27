@@ -502,12 +502,12 @@ Consider building it behind a flag and reconciling against a known dataset first
 
 ---
 
-## M14 · Categories
+## M14 · Categories ✅ DONE
 
-- [ ] Reuse the 15 expense categories from `data/categories.js` — do not create a
+- [x] Reuse the 15 expense categories from `data/categories.js` — do not create a
       parallel list
-- [ ] Add any genuinely missing ones (Hotel, Rent) to the shared source
-- [ ] Category shown on expense detail, used in filters (M18) and analytics (M23)
+- [x] Add any genuinely missing ones (Hotel, Rent) to the shared source
+- [x] Category shown on expense detail, used in filters (M18) and analytics (M23)
 
 **Done when** personal and shared expenses use one category vocabulary.
 

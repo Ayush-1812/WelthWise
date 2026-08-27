@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { formatMoney } from "@/lib/format";
+import { categoryName } from "@/data/categories";
 import { getSharedExpense } from "@/actions/split/expenses";
 import { getCurrentAppUser, getMembership } from "@/lib/split/auth";
 import { canEditExpense } from "@/lib/split/access";
@@ -97,7 +98,7 @@ export default async function SharedExpenseDetailPage({ params }) {
             </div>
             <div>
               <dt className="text-muted-foreground">Category</dt>
-              <dd className="font-medium capitalize">{expense.category}</dd>
+              <dd className="font-medium">{categoryName(expense.category)}</dd>
             </div>
             <div>
               <dt className="text-muted-foreground">Split method</dt>

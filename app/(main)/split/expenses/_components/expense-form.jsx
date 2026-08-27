@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { defaultCategories } from "@/data/categories";
+import { expenseCategories } from "@/data/categories";
 import useFetch from "@/hooks/use-fetch";
 import {
   createSharedExpense,
@@ -40,8 +40,6 @@ const SPLIT_METHODS = [
   { value: "SHARES", label: "Shares" },
   { value: "CUSTOM", label: "Adjustments" },
 ];
-
-const expenseCategories = defaultCategories.filter((c) => c.type === "EXPENSE");
 
 export function ExpenseForm({ context, initial = null }) {
   const router = useRouter();

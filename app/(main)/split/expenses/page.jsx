@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatMoney } from "@/lib/format";
-import { categoryColors } from "@/data/categories";
+import { categoryColor, categoryName } from "@/data/categories";
 import { getSharedExpenses } from "@/actions/split/expenses";
 
 export default async function SplitExpensesPage() {
@@ -95,14 +95,14 @@ export default async function SplitExpensesPage() {
                   <div className="flex shrink-0 items-center gap-3">
                     <Badge
                       variant="secondary"
-                      className="hidden capitalize sm:inline-flex"
+                      className="hidden sm:inline-flex"
                       style={{
                         backgroundColor: `${
-                          categoryColors[expense.category] ?? "#94a3b8"
+                          categoryColor(expense.category)
                         }20`,
                       }}
                     >
-                      {expense.category}
+                      {categoryName(expense.category)}
                     </Badge>
                     <div className="text-right">
                       <p
