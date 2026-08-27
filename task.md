@@ -448,7 +448,7 @@ date → notes → save
 
 # PHASE 2 — Integration & advanced
 
-## M12 · Personal-finance integration ⚠ highest risk
+## M12 · Personal-finance integration ✅ DONE
 
 **Goal:** shared expenses must not inflate personal spending. This is the module
 that makes the feature *WealthWise* rather than a bolted-on clone.
@@ -463,13 +463,13 @@ own share is ₹1,000:
 | Recoverable from others | ₹3,000 | A receivable — **not** an expense |
 
 **Work**
-- [ ] Decide the linkage model and write it down before coding. Recommended:
+- [x] Decide the linkage model and write it down before coding. Recommended:
       link a `SharedExpense` to an optional personal `Transaction` for the cash
       outflow, but derive **personal spending analytics from the user's share**,
       not the paid amount
-- [ ] Add a nullable `sharedExpenseId` link on `Transaction`
-- [ ] Ensure dashboard/monthly-report totals use share, not paid
-- [ ] Ensure incoming settlements never register as INCOME
+- [x] Add a nullable `sharedExpenseId` link on `Transaction`
+- [x] Ensure dashboard/monthly-report totals use share, not paid
+- [x] Ensure incoming settlements never register as INCOME
 
 **Done when**
 - Paying ₹4,000 with a ₹1,000 share moves the account balance by ₹4,000 and

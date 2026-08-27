@@ -39,6 +39,8 @@ export async function getCurrentBudget(accountId) {
     const expenses = await db.transaction.aggregate({
       where: {
         userId: user.id,
+        // Money lent to others or moved in a settlement is not spending (M12).
+        isTransfer: false,
         type: "EXPENSE",
         date: {
           gte: startOfMonth,

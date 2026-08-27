@@ -18,6 +18,7 @@ import {
 } from "@/lib/split/settlements";
 
 import { loadUserLedger } from "./balances";
+import { syncSettlementToPersonal } from "./personal-sync";
 
 const USER_FIELDS = { id: true, name: true, email: true, imageUrl: true };
 
@@ -85,6 +86,7 @@ export async function createSettlement({
   method = "EXTERNAL",
   note = "",
   groupId = null,
+  accountId = null,
 }) {
   try {
     const me = await getCurrentAppUser();
@@ -124,16 +126,41 @@ export async function createSettlement({
       method,
     });
 
-    await db.settlement.create({
-      data: {
-        groupId,
+    await db.$transaction(async (tx) => {
+      const settlement = await tx.settlement.create({
+        data: {
+          groupId,
+          fromUserId: direction.fromUserId,
+          toUserId: direction.toUserId,
+          amount: value.toFixed(2),
+          method,
+          note: String(note ?? "").trim() || null,
+          settledAt: new Date(),
+        },
+      });
+
+      // Personal-finance side (M12): a settlement moves cash but is never
+      // income or expense, so the row is written as a transfer.
+      await syncSettlementToPersonal(tx, {
+        settlementId: settlement.id,
+        userId: me.id,
+        accountId: accountId || null,
         fromUserId: direction.fromUserId,
         toUserId: direction.toUserId,
-        amount: value.toFixed(2),
-        method,
-        note: String(note ?? "").trim() || null,
-        settledAt: new Date(),
-      },
+        amount: value,
+        counterpartyName: other.name || other.email,
+        date: settlement.settledAt,
+      });
+
+      await tx.sharedExpenseActivity.create({
+        data: {
+          groupId,
+          actorId: me.id,
+          type: "SETTLEMENT_RECORDED",
+          settlementId: settlement.id,
+          metadata: { amount: value.toFixed(2), method },
+        },
+      });
     });
 
     revalidatePath("/split/settlements");

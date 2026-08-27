@@ -150,9 +150,11 @@ export async function getDashboardData() {
     throw new Error("User not found");
   }
 
-  // Get all user transactions
+  // Spending analytics only. Transfers (money lent to others, settlement
+  // movements) shift the account balance but are not consumption, so they
+  // must not reach the dashboard charts (M12).
   const transactions = await db.transaction.findMany({
-    where: { userId: user.id },
+    where: { userId: user.id, isTransfer: false },
     orderBy: { date: "desc" },
   });
 

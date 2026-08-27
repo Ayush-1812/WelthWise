@@ -69,13 +69,26 @@ model Transaction {
   status            TransactionStatus  @default(COMPLETED)
   userId            String
   accountId         String
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  account           Account            @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // --- Split Expenses linkage (M12) ---
+  /// Cash movement that is NOT personal consumption: money lent to others, or
+  /// a settlement transfer. Excluded from all personal spending analytics, but
+  /// still moves the account balance because the cash really did move.
+  isTransfer      Boolean        @default(false)
+  sharedExpenseId String?
+  settlementId    String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  account         Account        @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sharedExpense   SharedExpense? @relation(fields: [sharedExpenseId], references: [id], onDelete: Cascade)
+  settlement      Settlement?    @relation(fields: [settlementId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([accountId])
+  @@index([sharedExpenseId])
+  @@index([settlementId])
+  @@index([userId, isTransfer])
   @@map("transactions")
 }
 
@@ -167,18 +180,18 @@ enum ActivityType {
 /// Store the pair canonically (smaller uuid as requesterId) so A->B and B->A
 /// cannot both exist; the unique constraint then enforces it.
 model Friendship {
-  id          String           @id @default(uuid())
+  id            String           @id @default(uuid())
   /// requesterId/addresseeId are stored canonically (smaller uuid first) so the
   /// unique constraint below makes reciprocal duplicates impossible. That
   /// ordering is positional, NOT directional - it says nothing about who asked.
-  requesterId String
-  addresseeId String
+  requesterId   String
+  addresseeId   String
   /// Who actually sent the request. Required to tell an incoming request from
   /// an outgoing one, which the canonical ordering deliberately discards.
   initiatedById String
-  status      FriendshipStatus @default(PENDING)
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  status        FriendshipStatus @default(PENDING)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
 
   requester   User @relation("FriendshipRequester", fields: [requesterId], references: [id], onDelete: Cascade)
   addressee   User @relation("FriendshipAddressee", fields: [addresseeId], references: [id], onDelete: Cascade)
@@ -254,12 +267,13 @@ model SharedExpense {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
-  group     ExpenseGroup?           @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  paidBy    User                    @relation("ExpensePayer", fields: [paidById], references: [id], onDelete: Cascade)
-  createdBy User                    @relation("ExpenseCreator", fields: [createdById], references: [id], onDelete: Cascade)
-  splits    ExpenseSplit[]
-  items     ExpenseItem[]
-  activity  SharedExpenseActivity[]
+  group                ExpenseGroup?           @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  paidBy               User                    @relation("ExpensePayer", fields: [paidById], references: [id], onDelete: Cascade)
+  createdBy            User                    @relation("ExpenseCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  splits               ExpenseSplit[]
+  items                ExpenseItem[]
+  personalTransactions Transaction[]
+  activity             SharedExpenseActivity[]
 
   @@index([groupId])
   @@index([paidById])
@@ -327,10 +341,11 @@ model Settlement {
   createdAt  DateTime         @default(now())
   updatedAt  DateTime         @updatedAt
 
-  group    ExpenseGroup?           @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  fromUser User                    @relation("SettlementFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
-  toUser   User                    @relation("SettlementTo", fields: [toUserId], references: [id], onDelete: Cascade)
-  activity SharedExpenseActivity[]
+  group                ExpenseGroup?           @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  fromUser             User                    @relation("SettlementFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser               User                    @relation("SettlementTo", fields: [toUserId], references: [id], onDelete: Cascade)
+  activity             SharedExpenseActivity[]
+  personalTransactions Transaction[]
 
   @@index([groupId])
   @@index([fromUserId])

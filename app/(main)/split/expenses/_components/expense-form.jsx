@@ -45,7 +45,7 @@ const expenseCategories = defaultCategories.filter((c) => c.type === "EXPENSE");
 
 export function ExpenseForm({ context, initial = null }) {
   const router = useRouter();
-  const { me, groups, friends } = context;
+  const { me, groups, friends, accounts = [] } = context;
   const isEdit = Boolean(initial);
 
   // "g:<id>" for a group, "f:<id>" for a direct friend expense.
@@ -82,6 +82,10 @@ export function ExpenseForm({ context, initial = null }) {
   const [method, setMethod] = useState(initial?.splitMethod ?? "EQUAL");
   const [values, setValues] = useState(initial?.splitValues ?? {});
   const [paidById, setPaidById] = useState(initial?.paidById ?? me.id);
+  // Optional: record the cash outflow against a personal account (M12).
+  const [accountId, setAccountId] = useState(
+    initial?.accountId ?? accounts.find((a) => a.isDefault)?.id ?? ""
+  );
   const [participantIds, setParticipantIds] = useState(() =>
     initial ? initial.participantIds : participantsForKey(initialKey)
   );
@@ -152,6 +156,8 @@ export function ExpenseForm({ context, initial = null }) {
       participantIds,
       splitMethod: method,
       splitValues: values,
+      accountId:
+        paidById === me.id && accountId && accountId !== "none" ? accountId : null,
       confirm,
     };
 
@@ -317,6 +323,34 @@ export function ExpenseForm({ context, initial = null }) {
               </Popover>
             </div>
           </div>
+
+          {paidById === me.id && accounts.length > 0 && (
+            <div className="space-y-2">
+              <span className="text-sm font-medium">
+                Record cash outflow in{" "}
+                <span className="text-muted-foreground">(optional)</span>
+              </span>
+              <Select value={accountId} onValueChange={setAccountId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Do not track personally" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Do not track personally</SelectItem>
+                  {accounts.map((acc) => (
+                    <SelectItem key={acc.id} value={acc.id}>
+                      {acc.name}
+                      {acc.isDefault ? " (default)" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                The full amount leaves this account, but only your own share
+                counts as personal spending. What others owe you is tracked
+                separately and never inflates your analytics.
+              </p>
+            </div>
+          )}
 
           <div className="space-y-2">
             <label htmlFor="notes" className="text-sm font-medium">

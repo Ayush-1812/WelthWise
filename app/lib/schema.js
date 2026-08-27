@@ -56,6 +56,8 @@ export const sharedExpenseSchema = z
     // per-participant input, keyed by user id; meaning depends on splitMethod
     splitValues: z.record(z.string(), z.union([z.string(), z.number()])).optional(),
     notes: z.string().max(500).optional(),
+    // Optional: record the cash outflow against a personal account (M12).
+    accountId: z.string().nullable().optional(),
   })
   .superRefine((data, ctx) => {
     if (!data.participantIds.includes(data.paidById)) {

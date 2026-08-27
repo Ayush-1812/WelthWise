@@ -14,6 +14,10 @@ import {
 } from "@/lib/split/auth";
 import { computeSplit, validateSplit, SplitError } from "@/lib/split/engine";
 import { computeNetBalances } from "@/lib/split/balances";
+import {
+  syncExpenseToPersonal,
+  unsyncExpenseFromPersonal,
+} from "./personal-sync";
 import { sharedExpenseSchema } from "@/app/lib/schema";
 
 const USER_FIELDS = { id: true, name: true, email: true, imageUrl: true };
@@ -73,9 +77,22 @@ export async function getExpenseFormContext() {
       f.requesterId === me.id ? f.addressee : f.requester
     );
 
+    // Personal accounts, so the payer can optionally record the cash outflow
+    // against one of them (M12).
+    const accounts = await db.account.findMany({
+      where: { userId: me.id },
+      select: { id: true, name: true, isDefault: true },
+      orderBy: { createdAt: "desc" },
+    });
+
     return {
       success: true,
-      data: { me: { id: me.id, name: me.name, email: me.email, imageUrl: me.imageUrl }, groups, friends },
+      data: {
+        me: { id: me.id, name: me.name, email: me.email, imageUrl: me.imageUrl },
+        groups,
+        friends,
+        accounts,
+      },
     };
   } catch (error) {
     return fail(error);
@@ -161,6 +178,23 @@ export async function createSharedExpense(input) {
         },
         include: { splits: true },
       });
+
+      // Personal-finance side (M12): only the payer moved any cash, and only
+      // their own share counts as spending.
+      if (me.id === data.paidById) {
+        await syncExpenseToPersonal(tx, {
+          expenseId: created.id,
+          userId: me.id,
+          accountId: data.accountId || null,
+          paidById: data.paidById,
+          amount,
+          myShare:
+            splits.find((s2) => s2.userId === me.id)?.shareAmount ?? 0,
+          description: data.description.trim(),
+          category: data.category,
+          date: data.date,
+        });
+      }
 
       return created;
     });
@@ -477,6 +511,26 @@ export async function updateSharedExpense(expenseId, input) {
         },
       });
 
+      // Personal-finance side (M12). Re-synced from scratch so a changed
+      // amount, payer or share cannot leave a stale personal row behind.
+      const previousAccountId =
+        (await tx.transaction.findFirst({
+          where: { sharedExpenseId: expenseId, userId: me.id },
+          select: { accountId: true },
+        }))?.accountId ?? null;
+
+      await syncExpenseToPersonal(tx, {
+        expenseId,
+        userId: me.id,
+        accountId: data.accountId || previousAccountId,
+        paidById: data.paidById,
+        amount,
+        myShare: splits.find((s2) => s2.userId === me.id)?.shareAmount ?? 0,
+        description: data.description.trim(),
+        category: data.category,
+        date: data.date,
+      });
+
       await tx.sharedExpenseActivity.create({
         data: {
           groupId: existing.groupId,
@@ -553,6 +607,9 @@ export async function deleteSharedExpense(expenseId, { confirm = false } = {}) {
         where: { id: expenseId },
         data: { isDeleted: true, deletedAt: new Date() },
       });
+
+      // The cash never really left, so reverse the personal rows too (M12).
+      await unsyncExpenseFromPersonal(tx, { expenseId, userId: me.id });
 
       await tx.sharedExpenseActivity.create({
         data: {
