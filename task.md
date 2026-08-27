@@ -547,16 +547,16 @@ delivers to the account owner. In-app notifications should not depend on email.
 
 ---
 
-## M17 · Recurring shared expenses
+## M17 · Recurring shared expenses ✅ DONE
 
-- [ ] `RecurringSharedExpense`: template + `frequency` + `nextRunDate` + `lastRunAt`
-- [ ] Weekly / monthly / yearly / custom
-- [ ] Inngest cron function, mirroring `triggerRecurringTransactions` in
+- [x] `RecurringSharedExpense`: template + `frequency` + `nextRunDate` + `lastRunAt`
+- [x] Weekly / monthly / yearly / custom
+- [x] Inngest cron function, mirroring `triggerRecurringTransactions` in
       `lib/inngest/functions.js`
-- [ ] Give the function an explicit `id` (the existing `checkBudgetAlerts` was
+- [x] Give the function an explicit `id` (the existing `checkBudgetAlerts` was
       missing one)
-- [ ] Notify participants on generation
-- [ ] Pause / resume / end date
+- [x] Notify participants on generation
+- [x] Pause / resume / end date
 
 **Done when** a monthly rent template generates exactly one expense per period —
 **idempotent**, so a retry or double-fire cannot double-charge.
