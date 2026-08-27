@@ -1,0 +1,204 @@
+   ▲ Next.js 15.2.8
+   - Environments: .env
+
+   Creating an optimized production build ...
+ ⚠ Compiled with warnings
+
+./actions/split/groups.js
+Attempted import error: 'areFriendsFrom' is not exported from '@/lib/split/friends' (imported as 'areFriendsFrom').
+
+Import trace for requested module:
+./actions/split/groups.js
+./app/(main)/split/groups/page.jsx
+
+./actions/split/groups.js
+Attempted import error: 'areFriendsFrom' is not exported from '@/lib/split/friends' (imported as 'areFriendsFrom').
+
+Import trace for requested module:
+./actions/split/groups.js
+./app/(main)/split/groups/page.jsx
+
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (181kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+
+./app/(main)/transaction/_components/transaction-form.jsx
+130:16  Warning: Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+  128 |   }, [transactionResult, transactionLoading, editMode,reset, router]);
+  129 |
+> 130 |   const type = watch("type");
+      |                ^^^^^ React Hook Form's `useForm()` API returns a `watch()` function which cannot be memoized safely.
+  131 |   const isRecurring = watch("isRecurring");
+  132 |   const date = watch("date");
+  133 |  react-hooks/incompatible-library
+
+./components/create-account-drawer.jsx
+74:16  Warning: Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+  72 |     }
+  73 |   }, [error]);
+> 74 |   const type = watch("type");
+     |                ^^^^^ React Hook Form's `useForm()` API returns a `watch()` function which cannot be memoized safely.
+  75 |   const isDefault = watch("isDefault");
+  76 |
+  77 |  react-hooks/incompatible-library
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules
+   Collecting page data ...
+   Generating static pages (0/19) ...
+[split/balances] Error: Dynamic server usage: Route /split/balances couldn't be rendered statically because it used `headers`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at _ (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\7719.js:12:43484)
+    at d (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\4999.js:1:8546)
+    at n (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\8261.js:30:9414)
+    at async R (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\8261.js:30:6187)
+    at async s (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\8465.js:1:9588)
+    at async m (C:\Users\AYUSH JANGID\WelthWise\.next\server\app\(main)\split\balances\page.js:1:8852)
+    at async m (C:\Users\AYUSH JANGID\WelthWise\.next\server\app\(main)\split\balances\page.js:1:1690) {
+  description: "Route /split/balances couldn't be rendered statically because it used `headers`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+   Generating static pages (4/19) 
+[split/expenses] Error: Dynamic server usage: Route /split/expenses/new couldn't be rendered statically because it used `headers`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at _ (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\7719.js:12:43484)
+    at d (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\4999.js:1:8546)
+    at n (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\8261.js:30:9414)
+    at async R (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\8261.js:30:6187)
+    at async s (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\8465.js:1:9588)
+    at async E (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\8640.js:1:5841)
+    at async p (C:\Users\AYUSH JANGID\WelthWise\.next\server\app\(main)\split\expenses\new\page.js:1:2506) {
+  description: "Route /split/expenses/new couldn't be rendered statically because it used `headers`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+[split/groups] Error: Dynamic server usage: Route /split/groups couldn't be rendered statically because it used `headers`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at _ (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\7719.js:12:43484)
+    at d (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\4999.js:1:8546)
+    at n (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\8261.js:30:9414)
+    at async R (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\8261.js:30:6187)
+    at async s (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\8465.js:1:9588)
+    at async h (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\4201.js:1:3413)
+    at async p (C:\Users\AYUSH JANGID\WelthWise\.next\server\app\(main)\split\groups\page.js:1:15519) {
+  description: "Route /split/groups couldn't be rendered statically because it used `headers`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+[split/friends] Error: Dynamic server usage: Route /split/groups couldn't be rendered statically because it used `headers`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at _ (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\7719.js:12:43484)
+    at d (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\4999.js:1:8546)
+    at n (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\8261.js:30:9414)
+    at async R (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\8261.js:30:6187)
+    at async s (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\8465.js:1:9588)
+    at async N (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\4297.js:1:3205)
+    at async p (C:\Users\AYUSH JANGID\WelthWise\.next\server\app\(main)\split\groups\page.js:1:15519) {
+  description: "Route /split/groups couldn't be rendered statically because it used `headers`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+[split/friends] Error: Dynamic server usage: Route /split/friends couldn't be rendered statically because it used `headers`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at _ (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\7719.js:12:43484)
+    at d (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\4999.js:1:8546)
+    at n (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\8261.js:30:9414)
+    at async R (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\8261.js:30:6187)
+    at async s (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\8465.js:1:9588)
+    at async N (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\4297.js:1:3205)
+    at async a (C:\Users\AYUSH JANGID\WelthWise\.next\server\app\(main)\split\friends\page.js:1:173) {
+  description: "Route /split/friends couldn't be rendered statically because it used `headers`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+[split/friends] Error: Dynamic server usage: Route /split/friends couldn't be rendered statically because it used `headers`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at _ (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\7719.js:12:43484)
+    at d (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\4999.js:1:8546)
+    at n (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\8261.js:30:9414)
+    at async R (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\8261.js:30:6187)
+    at async s (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\8465.js:1:9588)
+    at async w (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\4297.js:1:3614)
+    at async a (C:\Users\AYUSH JANGID\WelthWise\.next\server\app\(main)\split\friends\page.js:1:173) {
+  description: "Route /split/friends couldn't be rendered statically because it used `headers`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+   Generating static pages (9/19) 
+[split/expenses] Error: Dynamic server usage: Route /split/expenses couldn't be rendered statically because it used `headers`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at _ (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\7719.js:12:43484)
+    at d (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\4999.js:1:8546)
+    at n (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\8261.js:30:9414)
+    at async R (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\8261.js:30:6187)
+    at async s (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\8465.js:1:9588)
+    at async B (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\8640.js:1:8799)
+    at async h (C:\Users\AYUSH JANGID\WelthWise\.next\server\app\(main)\split\expenses\page.js:1:362) {
+  description: "Route /split/expenses couldn't be rendered statically because it used `headers`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+[split/settlements] Error: Dynamic server usage: Route /split/settlements couldn't be rendered statically because it used `headers`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at _ (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\7719.js:12:43484)
+    at d (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\4999.js:1:8546)
+    at n (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\8261.js:30:9414)
+    at async R (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\8261.js:30:6187)
+    at async s (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\8465.js:1:9588)
+    at async w (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\3983.js:1:19120)
+    at async h (C:\Users\AYUSH JANGID\WelthWise\.next\server\app\(main)\split\settlements\page.js:1:3048) {
+  description: "Route /split/settlements couldn't be rendered statically because it used `headers`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+[split/settlements] Error: Dynamic server usage: Route /split/settlements couldn't be rendered statically because it used `headers`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at _ (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\7719.js:12:43484)
+    at d (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\4999.js:1:8546)
+    at n (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\8261.js:30:9414)
+    at async R (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\8261.js:30:6187)
+    at async s (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\8465.js:1:9588)
+    at async h (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\3983.js:1:17383)
+    at async h (C:\Users\AYUSH JANGID\WelthWise\.next\server\app\(main)\split\settlements\page.js:1:3048) {
+  description: "Route /split/settlements couldn't be rendered statically because it used `headers`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+   Generating static pages (14/19) 
+[split/balances] Error: Dynamic server usage: Route /split/overview couldn't be rendered statically because it used `headers`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at _ (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\7719.js:12:43484)
+    at d (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\4999.js:1:8546)
+    at n (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\8261.js:30:9414)
+    at async R (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\8261.js:30:6187)
+    at async s (C:\Users\AYUSH JANGID\WelthWise\.next\server\chunks\8465.js:1:9588)
+    at async m (C:\Users\AYUSH JANGID\WelthWise\.next\server\app\(main)\split\balances\page.js:1:8852)
+    at async h (C:\Users\AYUSH JANGID\WelthWise\.next\server\app\(main)\split\overview\page.js:1:1669) {
+  description: "Route /split/overview couldn't be rendered statically because it used `headers`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+ ✓ Generating static pages (19/19)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                 Size  First Load JS
+┌ ƒ /                                     3.1 kB         121 kB
+├ ƒ /_not-found                            168 B         101 kB
+├ ƒ /account/[id]                        25.4 kB         296 kB
+├ ƒ /api/inngest                           168 B         101 kB
+├ ƒ /api/seed                              168 B         101 kB
+├ ƒ /dashboard                             10 kB         326 kB
+├ ƒ /sign-in/[[...sign-in]]                665 B         138 kB
+├ ƒ /sign-up/[[...sign-up]]                665 B         138 kB
+├ ƒ /split                                 168 B         101 kB
+├ ƒ /split/analytics                       168 B         101 kB
+├ ƒ /split/balances                        183 B         104 kB
+├ ƒ /split/balances/[userId]               216 B         182 kB
+├ ƒ /split/expenses                        183 B         104 kB
+├ ƒ /split/expenses/[id]                 3.91 kB         126 kB
+├ ƒ /split/expenses/[id]/edit              168 B         200 kB
+├ ƒ /split/expenses/new                    169 B         200 kB
+├ ƒ /split/friends                       6.56 kB         125 kB
+├ ƒ /split/groups                        5.15 kB         149 kB
+├ ƒ /split/groups/[id]                   5.97 kB         157 kB
+├ ƒ /split/overview                      2.73 kB         115 kB
+├ ƒ /split/settings                        168 B         101 kB
+├ ƒ /split/settlements                     203 B         179 kB
+└ ƒ /transaction/create                  4.83 kB         232 kB
++ First Load JS shared by all             101 kB
+  ├ chunks/1684-ae98c57c5701e2c4.js      45.8 kB
+  ├ chunks/4bd1b696-378d13a8ed3492c5.js  53.3 kB
+  └ other shared chunks (total)          2.04 kB
+
+
+ƒ Middleware                             80.4 kB
+
+ƒ  (Dynamic)  server-rendered on demand
+

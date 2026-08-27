@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { format } from "date-fns";
-import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -18,6 +17,7 @@ import { getCurrentAppUser, getMembership } from "@/lib/split/auth";
 import { canEditExpense } from "@/lib/split/access";
 
 import { FriendAvatar } from "../../friends/_components/friend-avatar";
+import { ExpenseActions } from "./_components/expense-actions";
 
 const METHOD_LABEL = {
   EQUAL: "Split equally",
@@ -234,28 +234,13 @@ export default async function SharedExpenseDetailPage({ params }) {
         </CardContent>
       </Card>
 
-      <div className="flex items-center justify-between gap-4">
-        <p className="text-xs text-muted-foreground">
-          {mayEdit
-            ? "You can edit or delete this expense."
-            : "Only the payer, the person who added it, or a group admin can change this."}
-        </p>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" disabled title="Arrives in M11">
-            <Pencil className="mr-2 h-4 w-4" />
-            Edit
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled
-            title="Arrives in M11"
-            className="text-destructive"
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Delete
-          </Button>
-        </div>
+      <div className="flex items-center justify-end gap-4">
+        <ExpenseActions
+          expenseId={expense.id}
+          groupId={expense.groupId}
+          canEdit={mayEdit}
+          isDeleted={expense.isDeleted}
+        />
       </div>
     </div>
   );

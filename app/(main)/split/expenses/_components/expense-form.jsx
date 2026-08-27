@@ -25,7 +25,10 @@ import {
 import { cn } from "@/lib/utils";
 import { defaultCategories } from "@/data/categories";
 import useFetch from "@/hooks/use-fetch";
-import { createSharedExpense } from "@/actions/split/expenses";
+import {
+  createSharedExpense,
+  updateSharedExpense,
+} from "@/actions/split/expenses";
 import { computeSplit, validateSplit } from "@/lib/split/engine";
 
 import { SplitEditor } from "./split-editor";
@@ -40,16 +43,21 @@ const SPLIT_METHODS = [
 
 const expenseCategories = defaultCategories.filter((c) => c.type === "EXPENSE");
 
-export function ExpenseForm({ context }) {
+export function ExpenseForm({ context, initial = null }) {
   const router = useRouter();
   const { me, groups, friends } = context;
+  const isEdit = Boolean(initial);
 
   // "g:<id>" for a group, "f:<id>" for a direct friend expense.
-  const initialKey = groups[0]
-    ? `g:${groups[0].id}`
-    : friends[0]
-      ? `f:${friends[0].id}`
-      : "";
+  const initialKey = initial
+    ? initial.groupId
+      ? `g:${initial.groupId}`
+      : `f:${initial.participantIds.find((id) => id !== me.id) ?? ""}`
+    : groups[0]
+      ? `g:${groups[0].id}`
+      : friends[0]
+        ? `f:${friends[0].id}`
+        : "";
 
   /** Everyone in a context, used to preselect participants. */
   const participantsForKey = (key) => {
@@ -62,19 +70,25 @@ export function ExpenseForm({ context }) {
   };
 
   const [contextKey, setContextKey] = useState(initialKey);
-  const [description, setDescription] = useState("");
-  const [amount, setAmount] = useState("");
-  const [date, setDate] = useState(new Date());
-  const [category, setCategory] = useState("food");
-  const [notes, setNotes] = useState("");
-  const [method, setMethod] = useState("EQUAL");
-  const [values, setValues] = useState({});
-  const [paidById, setPaidById] = useState(me.id);
+  const [description, setDescription] = useState(initial?.description ?? "");
+  const [amount, setAmount] = useState(
+    initial ? String(initial.amount) : ""
+  );
+  const [date, setDate] = useState(
+    initial?.date ? new Date(initial.date) : new Date()
+  );
+  const [category, setCategory] = useState(initial?.category ?? "food");
+  const [notes, setNotes] = useState(initial?.notes ?? "");
+  const [method, setMethod] = useState(initial?.splitMethod ?? "EQUAL");
+  const [values, setValues] = useState(initial?.splitValues ?? {});
+  const [paidById, setPaidById] = useState(initial?.paidById ?? me.id);
   const [participantIds, setParticipantIds] = useState(() =>
-    participantsForKey(initialKey)
+    initial ? initial.participantIds : participantsForKey(initialKey)
   );
 
-  const { loading, fn: runCreate } = useFetch(createSharedExpense);
+  const { loading, fn: runSave } = useFetch(
+    isEdit ? updateSharedExpense : createSharedExpense
+  );
 
   const [kind, contextId] = contextKey ? contextKey.split(":") : ["", ""];
   const group = kind === "g" ? groups.find((g) => g.id === contextId) : null;
@@ -126,11 +140,8 @@ export function ExpenseForm({ context }) {
     }
   }, [description, amount, participantIds, paidById, method, values]);
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    if (!readiness.ok) return;
-
-    const result = await runCreate({
+  const submit = async (confirm) => {
+    const payload = {
       description,
       amount,
       date,
@@ -141,12 +152,34 @@ export function ExpenseForm({ context }) {
       participantIds,
       splitMethod: method,
       splitValues: values,
-    });
+      confirm,
+    };
+
+    return isEdit ? runSave(initial.id, payload) : runSave(payload);
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    if (!readiness.ok) return;
+
+    let result = await submit(false);
+
+    // The server warns before disturbing someone who had already settled.
+    if (result?.needsConfirmation) {
+      if (!window.confirm(`${result.warning}\n\nSave anyway?`)) return;
+      result = await submit(true);
+    }
 
     if (result?.success) {
-      toast.success("Expense added");
+      toast.success(isEdit ? "Expense updated" : "Expense added");
       router.refresh();
-      router.push(group ? `/split/groups/${group.id}` : "/split/expenses");
+      router.push(
+        isEdit
+          ? `/split/expenses/${initial.id}`
+          : group
+            ? `/split/groups/${group.id}`
+            : "/split/expenses"
+      );
     } else if (result?.error) {
       toast.error(result.error);
     }
@@ -207,7 +240,7 @@ export function ExpenseForm({ context }) {
 
             <div className="space-y-2">
               <span className="text-sm font-medium">Split with</span>
-              <Select value={contextKey} onValueChange={applyContext}>
+              <Select value={contextKey} onValueChange={applyContext} disabled={isEdit}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Choose a group or friend" />
                 </SelectTrigger>
@@ -358,7 +391,7 @@ export function ExpenseForm({ context }) {
           ) : (
             <>
               <Save className="mr-2 h-4 w-4" />
-              Save expense
+              {isEdit ? "Save changes" : "Save expense"}
             </>
           )}
         </Button>

@@ -3,15 +3,17 @@
 import { revalidatePath } from "next/cache";
 
 import { db } from "@/lib/prisma";
-import { serializeMoney, toDecimal, round } from "@/lib/money";
+import { serializeMoney, toDecimal, round, Decimal } from "@/lib/money";
 import {
   getCurrentAppUser,
   assertValidParticipants,
   assertCanViewExpense,
+  assertCanEditExpense,
   AccessError,
   ACCESS_CODES,
 } from "@/lib/split/auth";
 import { computeSplit, validateSplit, SplitError } from "@/lib/split/engine";
+import { computeNetBalances } from "@/lib/split/balances";
 import { sharedExpenseSchema } from "@/app/lib/schema";
 
 const USER_FIELDS = { id: true, name: true, email: true, imageUrl: true };
@@ -173,6 +175,89 @@ export async function createSharedExpense(input) {
   }
 }
 
+/**
+ * Ledger rows for a scope, used to preview what an edit would do to balances.
+ * A group expense affects that group; a direct expense affects only the pair.
+ */
+async function loadScopeLedger({ groupId, userIds }) {
+  const where = groupId
+    ? { groupId, isDeleted: false }
+    : {
+        groupId: null,
+        isDeleted: false,
+        OR: [
+          { paidById: { in: userIds } },
+          { splits: { some: { userId: { in: userIds } } } },
+        ],
+      };
+
+  const [expenses, settlements] = await Promise.all([
+    db.sharedExpense.findMany({
+      where,
+      select: {
+        id: true,
+        paidById: true,
+        amount: true,
+        isDeleted: true,
+        splits: { select: { userId: true, shareAmount: true } },
+      },
+    }),
+    db.settlement.findMany({
+      where: groupId
+        ? { groupId }
+        : {
+            groupId: null,
+            OR: [
+              { fromUserId: { in: userIds } },
+              { toUserId: { in: userIds } },
+            ],
+          },
+      select: { fromUserId: true, toUserId: true, amount: true },
+    }),
+  ]);
+
+  return { expenses, settlements };
+}
+
+/**
+ * Warn when an edit or delete would disturb someone who has already settled.
+ *
+ * Balances stay mathematically consistent either way - they are derived. But
+ * silently turning "settled up" into "you owe 300" after money has changed
+ * hands is a surprise worth confirming, so this returns a human warning that
+ * the caller must acknowledge.
+ */
+function describeBalanceImpact({ ledger, expenseId, replacement, affectedIds, nameOf }) {
+  const withoutOld = ledger.expenses.filter((e) => e.id !== expenseId);
+  const before = computeNetBalances(ledger);
+  const after = computeNetBalances({
+    expenses: replacement ? [...withoutOld, replacement] : withoutOld,
+    settlements: ledger.settlements,
+  });
+
+  const disturbed = [];
+
+  for (const userId of affectedIds) {
+    const b = before.get(userId) ?? new Decimal(0);
+    const a = after.get(userId) ?? new Decimal(0);
+    if (b.equals(a)) continue;
+
+    // Someone who was square is no longer, or their side of the debt flips.
+    const wasSettled = b.isZero();
+    const flipped = !b.isZero() && !a.isZero() && b.isNegative() !== a.isNegative();
+
+    if (wasSettled || flipped) {
+      disturbed.push(nameOf(userId));
+    }
+  }
+
+  if (disturbed.length === 0) return null;
+
+  return `This changes the balance for ${disturbed.join(", ")}, who ${
+    disturbed.length === 1 ? "was" : "were"
+  } already settled or owed money the other way. Their balance will move.`;
+}
+
 /** Shared expenses the caller is party to. */
 export async function getSharedExpenses({ groupId = null, limit = 50 } = {}) {
   try {
@@ -257,6 +342,240 @@ export async function getSharedExpense(expenseId) {
     });
 
     return { success: true, data: serializeMoney(expense) };
+  } catch (error) {
+    return fail(error);
+  }
+}
+
+/**
+ * Edit a shared expense.
+ *
+ * Splits are always recomputed server-side and rewritten wholesale inside one
+ * transaction, so the expense and its splits can never disagree. Because
+ * balances are derived, correcting them is automatic once the splits change.
+ *
+ * Pass `confirm: true` to accept a warning about disturbing settled balances.
+ */
+export async function updateSharedExpense(expenseId, input) {
+  try {
+    const me = await getCurrentAppUser();
+
+    // Authorization: payer, creator, or group admin. Throws otherwise.
+    const existing = await assertCanEditExpense(expenseId, me.id);
+
+    const parsed = sharedExpenseSchema.safeParse({
+      ...input,
+      date: input?.date ? new Date(input.date) : undefined,
+    });
+    if (!parsed.success) {
+      const first = parsed.error.issues[0];
+      throw new AccessError(ACCESS_CODES.INVALID, first?.message ?? "Invalid expense");
+    }
+
+    const data = parsed.data;
+
+    // The group an expense belongs to is fixed - moving it between groups
+    // would silently move debt between unrelated people.
+    if ((data.groupId || null) !== (existing.groupId || null)) {
+      throw new AccessError(
+        ACCESS_CODES.INVALID,
+        "An expense cannot be moved to a different group. Delete it and add it again."
+      );
+    }
+
+    const participantIds = await assertValidParticipants({
+      groupId: existing.groupId,
+      actorId: me.id,
+      participantIds: data.participantIds,
+    });
+
+    if (!participantIds.includes(data.paidById)) {
+      throw new AccessError(
+        ACCESS_CODES.INVALID,
+        "The payer must be one of the participants"
+      );
+    }
+
+    const amount = round(toDecimal(data.amount));
+
+    const splits = computeSplit({
+      method: data.splitMethod,
+      total: amount,
+      participantIds,
+      values: data.splitValues ?? {},
+      payerId: data.paidById,
+    });
+
+    const check = validateSplit(amount, splits);
+    if (!check.ok) throw new SplitError(check.errors[0]);
+
+    // Everyone touched by the edit: old participants and new ones.
+    const affectedIds = [
+      ...new Set([
+        ...existing.splits.map((s) => s.userId),
+        ...participantIds,
+        existing.paidById,
+        data.paidById,
+      ]),
+    ];
+
+    if (!input?.confirm) {
+      const ledger = await loadScopeLedger({
+        groupId: existing.groupId,
+        userIds: affectedIds,
+      });
+      const users = await db.user.findMany({
+        where: { id: { in: affectedIds } },
+        select: { id: true, name: true, email: true },
+      });
+      const nameById = new Map(users.map((u) => [u.id, u.name || u.email]));
+
+      const warning = describeBalanceImpact({
+        ledger,
+        expenseId,
+        replacement: {
+          id: expenseId,
+          paidById: data.paidById,
+          amount,
+          isDeleted: false,
+          splits: splits.map((s) => ({
+            userId: s.userId,
+            shareAmount: s.shareAmount,
+          })),
+        },
+        affectedIds,
+        nameOf: (id) => nameById.get(id) ?? "someone",
+      });
+
+      if (warning) {
+        return { success: false, needsConfirmation: true, warning };
+      }
+    }
+
+    await db.$transaction(async (tx) => {
+      // Rewrite splits wholesale - a diff would risk leaving a stale row that
+      // makes the splits stop summing to the total.
+      await tx.expenseSplit.deleteMany({ where: { expenseId } });
+
+      await tx.sharedExpense.update({
+        where: { id: expenseId },
+        data: {
+          description: data.description.trim(),
+          amount,
+          date: data.date,
+          category: data.category,
+          notes: data.notes?.trim() || null,
+          splitMethod: data.splitMethod,
+          paidById: data.paidById,
+          splits: {
+            create: splits.map((s) => ({
+              userId: s.userId,
+              shareAmount: s.shareAmount.toFixed(2),
+              shareInput: s.shareInput ? s.shareInput.toString() : null,
+            })),
+          },
+        },
+      });
+
+      await tx.sharedExpenseActivity.create({
+        data: {
+          groupId: existing.groupId,
+          actorId: me.id,
+          type: "EXPENSE_EDITED",
+          expenseId,
+          metadata: {
+            description: data.description.trim(),
+            previousAmount: existing.amount.toString(),
+            newAmount: amount.toFixed(2),
+            previousPaidById: existing.paidById,
+            newPaidById: data.paidById,
+            participantCount: participantIds.length,
+          },
+        },
+      });
+    });
+
+    revalidatePath("/split/expenses");
+    revalidatePath(`/split/expenses/${expenseId}`);
+    revalidatePath("/split/balances");
+    revalidatePath("/split/overview");
+    revalidatePath("/split/friends");
+    if (existing.groupId) revalidatePath(`/split/groups/${existing.groupId}`);
+
+    return { success: true, data: { id: expenseId } };
+  } catch (error) {
+    return fail(error);
+  }
+}
+
+/**
+ * Soft-delete a shared expense.
+ *
+ * The row and its splits stay so history and any settlement that referenced
+ * them remain explainable; every balance calculation skips isDeleted rows, so
+ * the effect is fully reversed (task.md section 1).
+ */
+export async function deleteSharedExpense(expenseId, { confirm = false } = {}) {
+  try {
+    const me = await getCurrentAppUser();
+    const existing = await assertCanEditExpense(expenseId, me.id);
+
+    const affectedIds = [
+      ...new Set([...existing.splits.map((s) => s.userId), existing.paidById]),
+    ];
+
+    if (!confirm) {
+      const ledger = await loadScopeLedger({
+        groupId: existing.groupId,
+        userIds: affectedIds,
+      });
+      const users = await db.user.findMany({
+        where: { id: { in: affectedIds } },
+        select: { id: true, name: true, email: true },
+      });
+      const nameById = new Map(users.map((u) => [u.id, u.name || u.email]));
+
+      const warning = describeBalanceImpact({
+        ledger,
+        expenseId,
+        replacement: null, // removing it entirely
+        affectedIds,
+        nameOf: (id) => nameById.get(id) ?? "someone",
+      });
+
+      if (warning) {
+        return { success: false, needsConfirmation: true, warning };
+      }
+    }
+
+    await db.$transaction(async (tx) => {
+      await tx.sharedExpense.update({
+        where: { id: expenseId },
+        data: { isDeleted: true, deletedAt: new Date() },
+      });
+
+      await tx.sharedExpenseActivity.create({
+        data: {
+          groupId: existing.groupId,
+          actorId: me.id,
+          type: "EXPENSE_DELETED",
+          expenseId,
+          metadata: {
+            description: existing.description,
+            amount: existing.amount.toString(),
+          },
+        },
+      });
+    });
+
+    revalidatePath("/split/expenses");
+    revalidatePath(`/split/expenses/${expenseId}`);
+    revalidatePath("/split/balances");
+    revalidatePath("/split/overview");
+    revalidatePath("/split/friends");
+    if (existing.groupId) revalidatePath(`/split/groups/${existing.groupId}`);
+
+    return { success: true, data: { groupId: existing.groupId } };
   } catch (error) {
     return fail(error);
   }

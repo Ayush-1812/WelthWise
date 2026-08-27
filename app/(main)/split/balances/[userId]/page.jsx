@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { format } from "date-fns";
 import { ArrowLeft, HandCoins, Receipt } from "lucide-react";
 
+
 import {
   Card,
   CardContent,
@@ -10,18 +11,27 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/format";
 import { getBalanceDetail } from "@/actions/split/balances";
+import { getSettleUpTargets } from "@/actions/split/settlements";
 
 import { FriendAvatar } from "../../friends/_components/friend-avatar";
+import { SettleUpDrawer } from "../../settlements/_components/settle-up-drawer";
 
 export default async function BalanceDetailPage({ params }) {
   const { userId } = await params;
 
-  const result = await getBalanceDetail(userId);
+  const [result, targetsResult] = await Promise.all([
+    getBalanceDetail(userId),
+    getSettleUpTargets(),
+  ]);
   if (!result.success) notFound();
 
   const { other, netBalance, rows } = result.data;
+  const { targets, myUserId } = targetsResult.success
+    ? targetsResult.data
+    : { targets: [], myUserId: null };
   const name = other.name || other.email;
 
   // Proof for the reader: the rows below add up to the headline number.
@@ -49,24 +59,38 @@ export default async function BalanceDetailPage({ params }) {
               </p>
             </div>
           </div>
-          <div className="text-right">
-            {netBalance === 0 ? (
-              <p className="text-2xl font-bold text-muted-foreground">
-                Settled up
-              </p>
-            ) : (
-              <>
-                <p
-                  className={`text-2xl font-bold ${
-                    netBalance > 0 ? "text-green-600" : "text-red-600"
-                  }`}
-                >
-                  {formatMoney(Math.abs(netBalance))}
+          <div className="flex items-center gap-4">
+            <div className="text-right">
+              {netBalance === 0 ? (
+                <p className="text-2xl font-bold text-muted-foreground">
+                  Settled up
                 </p>
-                <p className="text-sm text-muted-foreground">
-                  {netBalance > 0 ? `${name} owes you` : `you owe ${name}`}
-                </p>
-              </>
+              ) : (
+                <>
+                  <p
+                    className={`text-2xl font-bold ${
+                      netBalance > 0 ? "text-green-600" : "text-red-600"
+                    }`}
+                  >
+                    {formatMoney(Math.abs(netBalance))}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {netBalance > 0 ? `${name} owes you` : `you owe ${name}`}
+                  </p>
+                </>
+              )}
+            </div>
+            {netBalance !== 0 && (
+              <SettleUpDrawer
+                targets={targets}
+                myUserId={myUserId}
+                initialUserId={other.id}
+              >
+                <Button>
+                  <HandCoins className="mr-2 h-4 w-4" />
+                  Settle up
+                </Button>
+              </SettleUpDrawer>
             )}
           </div>
         </CardContent>

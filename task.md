@@ -410,17 +410,17 @@ date → notes → save
 
 ---
 
-## M10 · Settlements
+## M10 · Settlements ✅ DONE
 
 **Files:** `actions/split/settlements.js`, `app/(main)/split/settlements/`
 
 **Work**
-- [ ] Full settlement (prefill the exact outstanding amount)
-- [ ] Partial settlement
-- [ ] Record an external payment (cash/UPI/bank + note)
-- [ ] Settlement history
-- [ ] Reject settlements exceeding the outstanding debt
-- [ ] Reject zero/negative amounts and self-settlement
+- [x] Full settlement (prefill the exact outstanding amount)
+- [x] Partial settlement
+- [x] Record an external payment (cash/UPI/bank + note)
+- [x] Settlement history
+- [x] Reject settlements exceeding the outstanding debt
+- [x] Reject zero/negative amounts and self-settlement
 
 **Done when**
 - Rahul owes ₹1,000, pays ₹600 → remaining is exactly ₹400
@@ -429,15 +429,15 @@ date → notes → save
 
 ---
 
-## M11 · Edit & delete expense
+## M11 · Edit & delete expense ✅ DONE
 
 **Files:** `actions/split/expenses.js` (extend)
 
 **Work**
-- [ ] Edit amount, payer, participants, split method, category, date, notes
-- [ ] Re-validate and rewrite splits atomically
-- [ ] Soft delete
-- [ ] Block edits that would leave a settled balance incoherent (or warn clearly)
+- [x] Edit amount, payer, participants, split method, category, date, notes
+- [x] Re-validate and rewrite splits atomically
+- [x] Soft delete
+- [x] Block edits that would leave a settled balance incoherent (or warn clearly)
 
 **Done when**
 - Editing recalculates every affected balance in the same transaction
