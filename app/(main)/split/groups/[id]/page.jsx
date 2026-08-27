@@ -4,16 +4,19 @@ import { Receipt, Activity } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { getGroup } from "@/actions/split/groups";
 import { getFriends } from "@/actions/split/friends";
+import { getGroupSimplification } from "@/actions/split/balances";
 
 import { GroupHeader } from "./_components/group-header";
 import { GroupMembers } from "./_components/group-members";
+import { SimplifyDebts } from "./_components/simplify-debts";
 
 export default async function GroupDetailPage({ params }) {
   const { id } = await params;
 
-  const [groupResult, friendsResult] = await Promise.all([
+  const [groupResult, friendsResult, simplifyResult] = await Promise.all([
     getGroup(id),
     getFriends(),
+    getGroupSimplification(id),
   ]);
 
   // getGroup returns an access failure for non-members too, which is what we
@@ -22,12 +25,15 @@ export default async function GroupDetailPage({ params }) {
 
   const group = groupResult.data;
   const friends = friendsResult.success ? friendsResult.data : [];
+  const simplification = simplifyResult.success ? simplifyResult.data : null;
 
   return (
     <div className="space-y-6">
       <GroupHeader group={group} />
 
       <GroupMembers group={group} friends={friends} />
+
+      <SimplifyDebts data={simplification} />
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card className="border-dashed">

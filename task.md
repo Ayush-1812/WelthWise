@@ -484,15 +484,15 @@ Consider building it behind a flag and reconciling against a known dataset first
 
 ---
 
-## M13 · Debt simplification
+## M13 · Debt simplification ✅ DONE
 
 **Files:** `lib/split/simplify.js`, `lib/split/simplify.test.js`
 
 **Work**
-- [ ] Greedy min-cash-flow: repeatedly match the largest creditor with the
+- [x] Greedy min-cash-flow: repeatedly match the largest creditor with the
       largest debtor
-- [ ] Present as a **recommendation**; do not mutate the ledger
-- [ ] Show before/after transaction counts
+- [x] Present as a **recommendation**; do not mutate the ledger
+- [x] Show before/after transaction counts
 
 **Done when**
 - Every participant's net balance is **identical** before and after

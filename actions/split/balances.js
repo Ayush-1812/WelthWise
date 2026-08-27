@@ -7,6 +7,7 @@ import {
   assertGroupMember,
   AccessError,
 } from "@/lib/split/auth";
+import { buildSettlementPlan } from "@/lib/split/simplify";
 import {
   computeNetBalances,
   computePairwiseBalances,
@@ -313,6 +314,59 @@ export async function getBalanceDetail(otherUserId) {
           paidByMe: row.paidByMe ?? null,
           sentByMe: row.sentByMe ?? null,
           group: row.groupId ? (detailById.get(row.id)?.group ?? null) : null,
+        })),
+      },
+    };
+  } catch (error) {
+    return fail(error);
+  }
+}
+
+/**
+ * A simplified settlement plan for a group.
+ *
+ * A RECOMMENDATION only - nothing is written. Users still record real
+ * settlements, and those are what actually move balances (task.md section 1).
+ */
+export async function getGroupSimplification(groupId) {
+  try {
+    const me = await getCurrentAppUser();
+    await assertGroupMember(groupId, me.id);
+
+    const ledger = await loadGroupLedger(groupId);
+    const balances = computeNetBalances(ledger);
+    const pairs = computePairwiseBalances(ledger);
+
+    const plan = buildSettlementPlan(balances, pairs);
+
+    const involved = new Set([
+      ...plan.payments.flatMap((x) => [x.fromUserId, x.toUserId]),
+      ...pairs.flatMap((x) => [x.fromUserId, x.toUserId]),
+    ]);
+
+    const users = involved.size
+      ? await db.user.findMany({
+          where: { id: { in: [...involved] } },
+          select: USER_FIELDS,
+        })
+      : [];
+    const byId = new Map(users.map((u) => [u.id, u]));
+
+    return {
+      success: true,
+      data: {
+        myUserId: me.id,
+        verified: plan.verified,
+        comparison: plan.comparison,
+        current: pairs.map((x) => ({
+          from: byId.get(x.fromUserId) ?? null,
+          to: byId.get(x.toUserId) ?? null,
+          amount: x.amount.toNumber(),
+        })),
+        simplified: plan.payments.map((x) => ({
+          from: byId.get(x.fromUserId) ?? null,
+          to: byId.get(x.toUserId) ?? null,
+          amount: x.amount.toNumber(),
         })),
       },
     };
