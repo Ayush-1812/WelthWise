@@ -13,6 +13,7 @@ import {
   ACCESS_CODES,
 } from "@/lib/split/auth";
 import { computeSplit, validateSplit, SplitError } from "@/lib/split/engine";
+import { normalizeItems, ItemizedError } from "@/lib/split/itemized";
 import { computeNetBalances } from "@/lib/split/balances";
 import {
   normalizeFilters,
@@ -37,7 +38,8 @@ function fail(error) {
   if (
     error instanceof AccessError ||
     error instanceof SplitError ||
-    error instanceof FilterError
+    error instanceof FilterError ||
+    error instanceof ItemizedError
   ) {
     return { success: false, error: error.message };
   }
@@ -195,6 +197,20 @@ export async function createSharedExpense(input) {
         },
         include: { splits: true },
       });
+
+      // Itemized expenses keep their line items so the breakdown can be
+      // reopened and corrected later (M21).
+      if (data.splitMethod === "ITEMIZED") {
+        await tx.expenseItem.createMany({
+          data: normalizeItems(data.splitValues?.items ?? []).map((item) => ({
+            expenseId: created.id,
+            name: item.name,
+            amount: item.amount.toFixed(2),
+            quantity: item.quantity,
+            assignedTo: item.assignedTo,
+          })),
+        });
+      }
 
       // Personal-finance side (M12): only the payer moved any cash, and only
       // their own share counts as spending.
@@ -483,6 +499,7 @@ export async function getSharedExpense(expenseId) {
         createdBy: { select: USER_FIELDS },
         group: { select: { id: true, name: true, icon: true } },
         splits: { include: { user: { select: USER_FIELDS } } },
+        items: { orderBy: { createdAt: "asc" } },
       },
     });
 
@@ -621,6 +638,21 @@ export async function updateSharedExpense(expenseId, input) {
           },
         },
       });
+
+      // Line items are rewritten wholesale, like the splits, so an edit can
+      // never leave a stale item that stops the breakdown adding up (M21).
+      await tx.expenseItem.deleteMany({ where: { expenseId } });
+      if (data.splitMethod === "ITEMIZED") {
+        await tx.expenseItem.createMany({
+          data: normalizeItems(data.splitValues?.items ?? []).map((item) => ({
+            expenseId,
+            name: item.name,
+            amount: item.amount.toFixed(2),
+            quantity: item.quantity,
+            assignedTo: item.assignedTo,
+          })),
+        });
+      }
 
       // Personal-finance side (M12). Re-synced from scratch so a changed
       // amount, payer or share cannot leave a stale personal row behind.

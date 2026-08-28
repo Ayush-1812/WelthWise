@@ -45,8 +45,16 @@ export default async function EditSharedExpensePage({ params }) {
     }
   }
 
+  // Rehydrate saved line items so an itemized expense reopens ready to correct.
+  const items = (expense.items ?? []).map((item) => ({
+    name: item.name,
+    amount: String(item.amount),
+    assignedTo: item.assignedTo ?? [],
+  }));
+
   const initial = {
     id: expense.id,
+    items,
     groupId: expense.groupId,
     description: expense.description,
     amount: expense.amount,

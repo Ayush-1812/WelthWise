@@ -8,6 +8,8 @@ import { cn } from "@/lib/utils";
 import { formatMoney } from "@/lib/format";
 import { computeSplit } from "@/lib/split/engine";
 
+import { ItemizedEditor } from "./itemized-editor";
+
 import { FriendAvatar } from "../../friends/_components/friend-avatar";
 
 /**
@@ -24,6 +26,7 @@ const METHOD_HELP = {
   PERCENTAGE: "Enter each person's percentage. They must add up to 100%.",
   SHARES: "Weight the split. 2 shares pays twice as much as 1.",
   CUSTOM: "Add or subtract a fixed amount per person; the rest splits evenly.",
+  ITEMIZED: "List each item and tap who shared it.",
 };
 
 const NEEDS_INPUT = new Set(["EXACT", "PERCENTAGE", "SHARES", "CUSTOM"]);
@@ -44,6 +47,8 @@ export function SplitEditor({
   onValueChange,
   amount,
   payerId,
+  items,
+  onItemsChange,
 }) {
   // Recompute on every keystroke. Errors are expected mid-edit, so a failure
   // becomes the message shown rather than an exception.
@@ -57,7 +62,8 @@ export function SplitEditor({
           method,
           total: amount,
           participantIds,
-          values,
+          // Itemized carries a list of line items rather than a per-person map.
+          values: method === "ITEMIZED" ? { items } : values,
           payerId,
         }),
         error: null,
@@ -65,10 +71,31 @@ export function SplitEditor({
     } catch (e) {
       return { splits: null, error: e.message };
     }
-  }, [amount, participantIds, method, values, payerId]);
+  }, [amount, participantIds, method, values, payerId, items]);
 
   const shareFor = (userId) =>
     splits?.find((s) => s.userId === userId)?.shareAmount ?? null;
+
+  // Itemized has its own editor: rows of items rather than a value per person.
+  if (method === "ITEMIZED") {
+    return (
+      <div className="space-y-3">
+        <ItemizedEditor
+          candidates={candidates}
+          participantIds={participantIds}
+          amount={amount}
+          items={items}
+          onChange={onItemsChange}
+        />
+        <SplitStatus
+          error={error}
+          splits={splits}
+          amount={amount}
+          participantCount={participantIds.length}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3">

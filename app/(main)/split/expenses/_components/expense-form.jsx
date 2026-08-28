@@ -31,6 +31,8 @@ import {
 } from "@/actions/split/expenses";
 import { computeSplit, validateSplit } from "@/lib/split/engine";
 
+import { emptyItem } from "@/lib/split/itemized";
+
 import { SplitEditor } from "./split-editor";
 
 const SPLIT_METHODS = [
@@ -39,6 +41,7 @@ const SPLIT_METHODS = [
   { value: "PERCENTAGE", label: "Percentages" },
   { value: "SHARES", label: "Shares" },
   { value: "CUSTOM", label: "Adjustments" },
+  { value: "ITEMIZED", label: "By item" },
 ];
 
 export function ExpenseForm({ context, initial = null }) {
@@ -79,6 +82,10 @@ export function ExpenseForm({ context, initial = null }) {
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [method, setMethod] = useState(initial?.splitMethod ?? "EQUAL");
   const [values, setValues] = useState(initial?.splitValues ?? {});
+  // Line items for an ITEMIZED split, kept separate from the per-person values.
+  const [items, setItems] = useState(
+    initial?.items?.length ? initial.items : [emptyItem()]
+  );
   const [paidById, setPaidById] = useState(initial?.paidById ?? me.id);
   // Optional: record the cash outflow against a personal account (M12).
   const [accountId, setAccountId] = useState(
@@ -132,7 +139,7 @@ export function ExpenseForm({ context, initial = null }) {
         method,
         total: amount,
         participantIds,
-        values,
+        values: method === "ITEMIZED" ? { items } : values,
         payerId: paidById,
       });
       const check = validateSplit(amount, splits);
@@ -140,7 +147,7 @@ export function ExpenseForm({ context, initial = null }) {
     } catch (e) {
       return { ok: false, reason: e.message };
     }
-  }, [description, amount, participantIds, paidById, method, values]);
+  }, [description, amount, participantIds, paidById, method, values, items]);
 
   const submit = async (confirm) => {
     const payload = {
@@ -153,7 +160,7 @@ export function ExpenseForm({ context, initial = null }) {
       paidById,
       participantIds,
       splitMethod: method,
-      splitValues: values,
+      splitValues: method === "ITEMIZED" ? { items } : values,
       accountId:
         paidById === me.id && accountId && accountId !== "none" ? accountId : null,
       confirm,
@@ -401,6 +408,8 @@ export function ExpenseForm({ context, initial = null }) {
             }
             amount={amount}
             payerId={paidById}
+            items={items}
+            onItemsChange={setItems}
           />
         </CardContent>
       </Card>

@@ -596,12 +596,12 @@ storage dependency is installed.
 
 ---
 
-## M21 · Itemized split + OCR ⚠ externally blocked
+## M21 · Itemized split ✅ DONE (OCR half still blocked)
 
 - [ ] Reuse `scanReceipt()` from `actions/transaction.js`
-- [ ] Extract line items → assign each to members → derive shares
-- [ ] `ExpenseItem` rows; Σ items === expense total
-- [ ] Manual correction UI — OCR will be wrong sometimes
+- [x] Extract line items → assign each to members → derive shares
+- [x] `ExpenseItem` rows; Σ items === expense total
+- [x] Manual correction UI — OCR will be wrong sometimes
 
 **Blocked until** the Gemini `403 denied access` is resolved. Build the manual
 itemized path first so the feature works without OCR.
