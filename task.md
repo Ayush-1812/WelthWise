@@ -571,12 +571,12 @@ delivers to the account owner. In-app notifications should not depend on email.
 
 ---
 
-## M19 · Dashboard integration
+## M19 · Dashboard integration ✅ DONE
 
-- [ ] Summary card on `/dashboard`: You owe ₹X · Owed to you ₹Y · Net ₹Z
-- [ ] Recent shared expenses, recent settlements, active groups, upcoming recurring
-- [ ] "View All" → `/split`
-- [ ] Must not slow the dashboard — it already does 3 sequential queries
+- [x] Summary card on `/dashboard`: You owe ₹X · Owed to you ₹Y · Net ₹Z
+- [x] Recent shared expenses, recent settlements, active groups, upcoming recurring
+- [x] "View All" → `/split`
+- [x] Must not slow the dashboard — it already does 3 sequential queries
 
 ---
 
