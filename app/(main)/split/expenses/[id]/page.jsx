@@ -17,8 +17,11 @@ import { getSharedExpense } from "@/actions/split/expenses";
 import { getCurrentAppUser, getMembership } from "@/lib/split/auth";
 import { canEditExpense } from "@/lib/split/access";
 
+import { isStorageConfigured } from "@/lib/storage";
+
 import { FriendAvatar } from "../../friends/_components/friend-avatar";
 import { ExpenseActions } from "./_components/expense-actions";
+import { ReceiptPanel } from "./_components/receipt-panel";
 
 const METHOD_LABEL = {
   EQUAL: "Split equally",
@@ -44,6 +47,7 @@ export default async function SharedExpenseDetailPage({ params }) {
     : null;
 
   const mayEdit = canEditExpense({ expense, actorId: me.id, membership });
+  const storageConfigured = isStorageConfigured();
   const payerName = expense.paidBy?.name || expense.paidBy?.email;
   const paidByMe = expense.paidById === me.id;
 
@@ -123,22 +127,12 @@ export default async function SharedExpenseDetailPage({ params }) {
             </div>
           )}
 
-          {expense.receiptUrl ? (
-            <p className="mt-4 text-sm">
-              <a
-                href={expense.receiptUrl}
-                className="text-purple-600 underline"
-                target="_blank"
-                rel="noreferrer"
-              >
-                View receipt
-              </a>
-            </p>
-          ) : (
-            <p className="mt-4 text-xs text-muted-foreground">
-              No receipt attached. Receipt storage arrives in M20.
-            </p>
-          )}
+          <ReceiptPanel
+            expenseId={expense.id}
+            hasReceipt={Boolean(expense.receiptUrl)}
+            canEdit={mayEdit}
+            storageConfigured={storageConfigured}
+          />
         </CardContent>
       </Card>
 

@@ -582,17 +582,17 @@ delivers to the account owner. In-app notifications should not depend on email.
 
 # PHASE 3 — Premium
 
-## M20 · Receipt storage ⚠ needs a decision
+## M20 · Receipt storage ✅ DONE
 
 `Transaction.receiptUrl` exists but is **dead** — never read, never written. No
 storage dependency is installed.
 
-- [ ] **Decide the storage backend first:** Supabase Storage (you already use
+- [x] **Decide the storage backend first:** Supabase Storage (you already use
       Supabase), Vercel Blob, S3, or UploadThing
-- [ ] Upload action with type/size validation (the scanner caps at 5MB today)
-- [ ] `SharedExpenseReceipt` rows, or reuse the existing `receiptUrl` pattern
-- [ ] Signed URLs — receipts must not be publicly enumerable
-- [ ] Retrofit personal transactions to actually persist receipts too
+- [x] Upload action with type/size validation (the scanner caps at 5MB today)
+- [x] `SharedExpenseReceipt` rows, or reuse the existing `receiptUrl` pattern
+- [x] Signed URLs — receipts must not be publicly enumerable
+- [x] Retrofit personal transactions to actually persist receipts too
 
 ---
 
