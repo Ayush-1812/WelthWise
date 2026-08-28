@@ -9,16 +9,18 @@ datasource db {
 }
 
 model User {
-  id           String        @id @default(uuid())
-  clerkUserId  String        @unique
-  email        String        @unique
-  name         String?
-  imageUrl     String?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  accounts     Account[]
-  budgets      Budget?
-  transactions Transaction[]
+  id                String        @id @default(uuid())
+  clerkUserId       String        @unique
+  email             String        @unique
+  name              String?
+  imageUrl          String?
+  /// Default currency for new shared expenses (M22).
+  preferredCurrency String        @default("INR")
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  accounts          Account[]
+  budgets           Budget?
+  transactions      Transaction[]
 
   // --- Split Expenses (M1) ---
   friendshipsSent        Friendship[]             @relation("FriendshipRequester")
@@ -251,11 +253,21 @@ model GroupMember {
 /// group and friend expenses share one ledger and one balance formula.
 /// Soft-deleted (isDeleted) - hard deletes would orphan past settlements.
 model SharedExpense {
-  id          String      @id @default(uuid())
+  id          String  @id @default(uuid())
   groupId     String?
   description String
   amount      Decimal
-  currency    String      @default("INR")
+  currency    String  @default("INR")
+
+  // --- Multi-currency provenance (M22) ---
+  /// What was actually spent, in the currency it was spent in. Never
+  /// overwritten: a rate that moves tomorrow must not rewrite yesterday.
+  originalAmount   Decimal?
+  originalCurrency String?
+  /// The rate used at the time, and when it was fetched.
+  exchangeRate     Decimal?
+  rateAt           DateTime?
+
   date        DateTime
   category    String
   notes       String?

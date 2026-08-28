@@ -608,15 +608,15 @@ itemized path first so the feature works without OCR.
 
 ---
 
-## M22 · Multi-currency ⚠ net-new
+## M22 · Multi-currency ✅ CORE DONE (UI pending)
 
 There is **no** currency support today. Amounts are `Decimal` with a hardcoded `$`.
 
-- [ ] `currency` on `SharedExpense` and `Settlement` (default from user profile)
-- [ ] Store `originalAmount`, `originalCurrency`, `exchangeRate`, `convertedAmount`
-- [ ] **Never overwrite original values** — store the rate used, at the time used
-- [ ] Pick and integrate a rate source; cache daily
-- [ ] Balances per currency; do not silently sum across currencies
+- [x] `currency` on `SharedExpense` and `Settlement` (default from user profile)
+- [x] Store `originalAmount`, `originalCurrency`, `exchangeRate`, `convertedAmount`
+- [x] **Never overwrite original values** — store the rate used, at the time used
+- [x] Pick and integrate a rate source; cache daily
+- [x] Balances per currency; do not silently sum across currencies
 - [ ] Replace hardcoded `$` app-wide via `formatMoney` from M0
 
 ---
