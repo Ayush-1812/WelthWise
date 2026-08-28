@@ -15,6 +15,12 @@ import {
 import { computeSplit, validateSplit, SplitError } from "@/lib/split/engine";
 import { computeNetBalances } from "@/lib/split/balances";
 import {
+  normalizeFilters,
+  buildExpenseWhere,
+  EXPENSE_ORDER,
+  FilterError,
+} from "@/lib/split/filters";
+import {
   syncExpenseToPersonal,
   unsyncExpenseFromPersonal,
 } from "./personal-sync";
@@ -28,7 +34,11 @@ function fail(error) {
   // DYNAMIC_SERVER_USAGE. Rethrow so Next can mark the route dynamic instead of
   // swallowing it into a failed result and logging a misleading error.
   if (error?.digest === "DYNAMIC_SERVER_USAGE") throw error;
-  if (error instanceof AccessError || error instanceof SplitError) {
+  if (
+    error instanceof AccessError ||
+    error instanceof SplitError ||
+    error instanceof FilterError
+  ) {
     return { success: false, error: error.message };
   }
   console.error("[split/expenses]", error);
@@ -337,24 +347,22 @@ function describeBalanceImpact({ ledger, expenseId, replacement, affectedIds, na
 }
 
 /** Shared expenses the caller is party to. */
-export async function getSharedExpenses({ groupId = null, limit = 50 } = {}) {
+export async function getSharedExpenses({
+  groupId = null,
+  limit = 25,
+  cursor = null,
+  ...rawFilters
+} = {}) {
   try {
     const me = await getCurrentAppUser();
 
-    const expenses = await db.sharedExpense.findMany({
-      where: {
-        isDeleted: false,
-        ...(groupId ? { groupId } : {}),
-        OR: [
-          { paidById: me.id },
-          { splits: { some: { userId: me.id } } },
-          {
-            group: {
-              members: { some: { userId: me.id, leftAt: null } },
-            },
-          },
-        ],
-      },
+    // Filtering and paging happen in the database. Loading the whole ledger
+    // and filtering in the browser would not hold across several groups.
+    const filters = normalizeFilters({ ...rawFilters, groupId: groupId ?? rawFilters?.groupId });
+    const where = buildExpenseWhere(filters, me.id);
+
+    const rows = await db.sharedExpense.findMany({
+      where,
       include: {
         paidBy: { select: USER_FIELDS },
         group: { select: { id: true, name: true, icon: true } },
@@ -362,9 +370,13 @@ export async function getSharedExpenses({ groupId = null, limit = 50 } = {}) {
           include: { user: { select: USER_FIELDS } },
         },
       },
-      orderBy: [{ date: "desc" }, { createdAt: "desc" }],
-      take: limit,
+      orderBy: EXPENSE_ORDER,
+      take: limit + 1, // one extra tells us whether another page exists
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     });
+
+    const hasMore = rows.length > limit;
+    const expenses = hasMore ? rows.slice(0, limit) : rows;
 
     const data = expenses.map((expense) => {
       const myShare = expense.splits.find((s) => s.userId === me.id);
@@ -397,7 +409,62 @@ export async function getSharedExpenses({ groupId = null, limit = 50 } = {}) {
       });
     });
 
-    return { success: true, data };
+    return {
+      success: true,
+      data,
+      nextCursor: hasMore ? expenses[expenses.length - 1].id : null,
+      filters: {
+        ...filters,
+        from: filters.from ? filters.from.toISOString() : null,
+        to: filters.to ? filters.to.toISOString() : null,
+        minAmount: filters.minAmount ? filters.minAmount.toNumber() : null,
+        maxAmount: filters.maxAmount ? filters.maxAmount.toNumber() : null,
+      },
+    };
+  } catch (error) {
+    return fail(error);
+  }
+}
+
+/**
+ * Everything the filter bar needs to render its dropdowns: the caller's groups
+ * and the people they actually share expenses with.
+ */
+export async function getFilterOptions() {
+  try {
+    const me = await getCurrentAppUser();
+
+    const [memberships, friendships] = await Promise.all([
+      db.groupMember.findMany({
+        where: { userId: me.id, leftAt: null },
+        include: { group: { select: { id: true, name: true, icon: true } } },
+      }),
+      db.friendship.findMany({
+        where: {
+          status: "ACCEPTED",
+          OR: [{ requesterId: me.id }, { addresseeId: me.id }],
+        },
+        include: {
+          requester: { select: USER_FIELDS },
+          addressee: { select: USER_FIELDS },
+        },
+      }),
+    ]);
+
+    const people = new Map();
+    for (const f of friendships) {
+      const other = f.requesterId === me.id ? f.addressee : f.requester;
+      people.set(other.id, other);
+    }
+
+    return {
+      success: true,
+      data: {
+        myUserId: me.id,
+        groups: memberships.map((m) => m.group),
+        people: [...people.values()],
+      },
+    };
   } catch (error) {
     return fail(error);
   }

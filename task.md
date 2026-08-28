@@ -563,10 +563,10 @@ delivers to the account owner. In-app notifications should not depend on email.
 
 ---
 
-## M18 · Search & filters
+## M18 · Search & filters ✅ DONE
 
-- [ ] Filter by group, person, category, date range, amount range, currency, name
-- [ ] Server-side filtering and pagination (the existing transaction table
+- [x] Filter by group, person, category, date range, amount range, currency, name
+- [x] Server-side filtering and pagination (the existing transaction table
       filters client-side; that will not hold at ledger scale)
 
 ---

@@ -7,12 +7,19 @@ import { BudgetProgress } from "./_components/budget-progress";
 import { Card, CardContent } from "@/components/ui/card";
 import { Plus } from "lucide-react";
 import { DashboardOverview } from "./_components/transaction-overview";
+import { getDashboardSplitSummary } from "@/actions/split/dashboard";
+import { SplitSummary } from "./_components/split-summary";
 
 export default async function DashboardPage() {
-  const [accounts, transactions] = await Promise.all([
+  // Added to the existing batch rather than awaited separately, so the split
+  // summary costs no extra round trip (task.md M19: must not slow the dashboard).
+  const [accounts, transactions, splitResult] = await Promise.all([
     getUserAccounts(),
     getDashboardData(),
+    getDashboardSplitSummary(),
   ]);
+
+  const splitSummary = splitResult?.success ? splitResult.data : null;
 
   const defaultAccount = accounts?.find((account) => account.isDefault);
 
@@ -35,6 +42,9 @@ export default async function DashboardPage() {
           <CardContent>No budget set for default account</CardContent>
         </Card>
       )}
+
+      {/* Split Expenses */}
+      <SplitSummary data={splitSummary} />
 
       {/* Dashboard Overview */}
       <DashboardOverview

@@ -7,7 +7,6 @@ import { toDecimal } from "./lib/money.js";
 import { computeSplit } from "./lib/split/engine.js";
 import {
   duePeriods,
-  periodKeyFor,
   nextRunAfter,
   advance,
 } from "./lib/split/recurring.js";
