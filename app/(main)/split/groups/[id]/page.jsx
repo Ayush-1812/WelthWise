@@ -8,21 +8,24 @@ import { getGroup } from "@/actions/split/groups";
 import { getFriends } from "@/actions/split/friends";
 import { getGroupSimplification } from "@/actions/split/balances";
 import { getGroupActivity } from "@/actions/split/activity";
+import { getGroupAnalytics } from "@/actions/split/analytics";
 
 import { GroupHeader } from "./_components/group-header";
 import { GroupMembers } from "./_components/group-members";
 import { SimplifyDebts } from "./_components/simplify-debts";
 import { ActivityFeed } from "./_components/activity-feed";
+import { GroupAnalytics } from "./_components/group-analytics";
 
 export default async function GroupDetailPage({ params }) {
   const { id } = await params;
 
-  const [groupResult, friendsResult, simplifyResult, activityResult] =
+  const [groupResult, friendsResult, simplifyResult, activityResult, analyticsResult] =
     await Promise.all([
       getGroup(id),
       getFriends(),
       getGroupSimplification(id),
       getGroupActivity(id),
+      getGroupAnalytics(id),
     ]);
 
   // getGroup returns an access failure for non-members too, which is what we
@@ -33,6 +36,7 @@ export default async function GroupDetailPage({ params }) {
   const friends = friendsResult.success ? friendsResult.data : [];
   const simplification = simplifyResult.success ? simplifyResult.data : null;
   const activity = activityResult.success ? activityResult.data : null;
+  const analytics = analyticsResult.success ? analyticsResult.data : null;
 
   return (
     <div className="space-y-6">
@@ -41,6 +45,8 @@ export default async function GroupDetailPage({ params }) {
       <GroupMembers group={group} friends={friends} />
 
       <SimplifyDebts data={simplification} />
+
+      <GroupAnalytics data={analytics} myUserId={group.myUserId} />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="border-dashed">
