@@ -19,17 +19,39 @@ import {
 } from "@/lib/split/settlements";
 
 import { loadUserLedger } from "@/lib/split/ledger";
+import {
+  currenciesIn,
+  resolveLedgerCurrency,
+  scopeLedgerToCurrency,
+  CurrencyError,
+  DEFAULT_CURRENCY,
+} from "@/lib/split/currency";
 import { syncSettlementToPersonal } from "./personal-sync";
 import { queueNotifications, deliverEmailsInBackground } from "./notify";
 
 const USER_FIELDS = { id: true, name: true, email: true, imageUrl: true };
+
+/**
+ * Narrow a ledger to the single currency a settlement is being recorded in.
+ * A debt of $50 and a debt of Rs.50 are different debts; settling has to name
+ * which one it clears.
+ */
+function reportIn(raw, me, requested = null) {
+  const available = [...currenciesIn(raw)].sort();
+  const currency = resolveLedgerCurrency(raw, requested, me?.preferredCurrency);
+  return { ledger: scopeLedgerToCurrency(raw, currency), currency, available };
+}
 
 function fail(error) {
   // Next probes server components for static renderability; that probe throws
   // DYNAMIC_SERVER_USAGE. Rethrow so Next can mark the route dynamic instead of
   // swallowing it into a failed result and logging a misleading error.
   if (error?.digest === "DYNAMIC_SERVER_USAGE") throw error;
-  if (error instanceof AccessError || error instanceof SettlementError) {
+  if (
+    error instanceof AccessError ||
+    error instanceof SettlementError ||
+    error instanceof CurrencyError
+  ) {
     return { success: false, error: error.message };
   }
   console.error("[split/settlements]", error);
@@ -40,10 +62,14 @@ function fail(error) {
  * Everyone the caller currently has an unsettled balance with, and the exact
  * amount that would clear it. Used to prefill the settle-up form.
  */
-export async function getSettleUpTargets() {
+export async function getSettleUpTargets({ currency: requested = null } = {}) {
   try {
     const me = await getCurrentAppUser();
-    const ledger = await loadUserLedger(me.id);
+    const { ledger, currency, available } = reportIn(
+      await loadUserLedger(me.id),
+      me,
+      requested
+    );
     const perPerson = pairwiseForUser(ledger, me.id);
 
     const ids = [...perPerson.keys()].filter(
@@ -73,7 +99,10 @@ export async function getSettleUpTargets() {
       .filter((t) => t.user)
       .sort((a, b) => b.outstanding - a.outstanding);
 
-    return { success: true, data: { myUserId: me.id, targets } };
+    return {
+      success: true,
+      data: { myUserId: me.id, targets, currency, availableCurrencies: available },
+    };
   } catch (error) {
     return fail(error);
   }
@@ -93,6 +122,7 @@ export async function createSettlement({
   note = "",
   groupId = null,
   accountId = null,
+  currency: requestedCurrency = null,
 }) {
   try {
     const me = await getCurrentAppUser();
@@ -115,8 +145,14 @@ export async function createSettlement({
       await assertGroupMember(groupId, otherUserId);
     }
 
-    // Derive the debt from the ledger, never from the request.
-    const ledger = await loadUserLedger(me.id);
+    // Derive the debt from the ledger, never from the request. The ledger is
+    // narrowed to one currency first: settling is always against a specific
+    // currency's debt, never a total across several.
+    const { ledger, currency } = reportIn(
+      await loadUserLedger(me.id),
+      me,
+      requestedCurrency
+    );
     const net = pairwiseForUser(ledger, me.id).get(otherUserId) ?? new Decimal(0);
     const direction = settlementDirection(net, me.id, otherUserId);
 
@@ -135,6 +171,9 @@ export async function createSettlement({
     // The accountId is caller-supplied and gets written against below.
     const ownedAccountId = await assertOwnedAccount(accountId, me.id);
 
+    const personalCurrencyMatches =
+      currency === (me.preferredCurrency || DEFAULT_CURRENCY);
+
     const settlementEmails = [];
 
     await db.$transaction(async (tx) => {
@@ -144,6 +183,7 @@ export async function createSettlement({
           fromUserId: direction.fromUserId,
           toUserId: direction.toUserId,
           amount: value.toFixed(2),
+          currency,
           method,
           note: String(note ?? "").trim() || null,
           settledAt: new Date(),
@@ -155,7 +195,11 @@ export async function createSettlement({
       await syncSettlementToPersonal(tx, {
         settlementId: settlement.id,
         userId: me.id,
-        accountId: ownedAccountId,
+        // Transaction rows carry no currency of their own - they are implicitly
+        // in the user's preferred currency. Recording a foreign-currency
+        // settlement against a personal account would silently mis-state its
+        // balance, so the personal leg is skipped instead.
+        accountId: personalCurrencyMatches ? ownedAccountId : null,
         fromUserId: direction.fromUserId,
         toUserId: direction.toUserId,
         amount: value,
@@ -209,7 +253,10 @@ export async function createSettlement({
         amount: value.toNumber(),
         remaining: remaining.toNumber(),
         isFull,
+        currency,
         iPaid: direction.fromUserId === me.id,
+        // Surfaced so the UI can explain why no personal transaction appeared.
+        personalSyncSkipped: Boolean(ownedAccountId) && !personalCurrencyMatches,
       },
     };
   } catch (error) {
@@ -236,6 +283,7 @@ export async function getSettlements({ limit = 50 } = {}) {
     const data = rows.map((row) => ({
       id: row.id,
       amount: row.amount.toNumber(),
+      currency: row.currency,
       method: row.method,
       note: row.note,
       settledAt: row.settledAt,
