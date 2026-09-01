@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { db } from "@/lib/prisma";
 import { Decimal } from "@/lib/money";
+import { canonicalPair } from "@/lib/split/access";
 import {
   getCurrentAppUser,
   assertGroupMember,
@@ -145,38 +146,60 @@ export async function createSettlement({
       await assertGroupMember(groupId, otherUserId);
     }
 
-    // Derive the debt from the ledger, never from the request. The ledger is
-    // narrowed to one currency first: settling is always against a specific
-    // currency's debt, never a total across several.
-    const { ledger, currency } = reportIn(
-      await loadUserLedger(me.id),
-      me,
-      requestedCurrency
-    );
-    const net = pairwiseForUser(ledger, me.id).get(otherUserId) ?? new Decimal(0);
-    const direction = settlementDirection(net, me.id, otherUserId);
-
-    if (!direction) {
-      throw new SettlementError("You are already settled up with this person");
-    }
-
-    const { amount: value, remaining, isFull } = assertValidSettlement({
-      amount,
-      outstanding: direction.outstanding,
-      fromUserId: direction.fromUserId,
-      toUserId: direction.toUserId,
-      method,
-    });
-
     // The accountId is caller-supplied and gets written against below.
     const ownedAccountId = await assertOwnedAccount(accountId, me.id);
 
-    const personalCurrencyMatches =
-      currency === (me.preferredCurrency || DEFAULT_CURRENCY);
-
     const settlementEmails = [];
 
+    // Reading the ledger before the transaction and writing inside it left a
+    // window where two concurrent settle-ups both saw the full outstanding
+    // amount and both recorded it, over-settling the debt and flipping the
+    // balance negative - the one thing this function promises cannot happen.
+    // The debt is an aggregate over many rows, so no unique constraint can
+    // express it; instead both people's settle-ups serialize on a lock keyed
+    // by the pair, and the outstanding amount is re-derived while holding it.
+    let direction;
+    let value;
+    let remaining;
+    let isFull;
+    let currency;
+    let personalCurrencyMatches;
+
     await db.$transaction(async (tx) => {
+      const [lo, hi] = canonicalPair(me.id, otherUserId);
+      // Transaction-scoped, so it releases on commit or rollback and is safe
+      // through a transaction-mode connection pooler.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`settle:${lo}:${hi}`}))`;
+
+      // Re-derive the debt from the ledger while holding the lock, never from
+      // the request, and narrowed to one currency: settling is always against
+      // a specific currency's debt, never a total across several.
+      const scoped = reportIn(
+        await loadUserLedger(me.id, { client: tx }),
+        me,
+        requestedCurrency
+      );
+      currency = scoped.currency;
+
+      const net =
+        pairwiseForUser(scoped.ledger, me.id).get(otherUserId) ?? new Decimal(0);
+      direction = settlementDirection(net, me.id, otherUserId);
+
+      if (!direction) {
+        throw new SettlementError("You are already settled up with this person");
+      }
+
+      ({ amount: value, remaining, isFull } = assertValidSettlement({
+        amount,
+        outstanding: direction.outstanding,
+        fromUserId: direction.fromUserId,
+        toUserId: direction.toUserId,
+        method,
+      }));
+
+      personalCurrencyMatches =
+        currency === (me.preferredCurrency || DEFAULT_CURRENCY);
+
       const settlement = await tx.settlement.create({
         data: {
           groupId,
