@@ -307,6 +307,7 @@ async function loadScopeLedger({ groupId, userIds }) {
         id: true,
         paidById: true,
         amount: true,
+        currency: true,
         isDeleted: true,
         splits: { select: { userId: true, shareAmount: true } },
       },
@@ -321,7 +322,7 @@ async function loadScopeLedger({ groupId, userIds }) {
               { toUserId: { in: userIds } },
             ],
           },
-      select: { fromUserId: true, toUserId: true, amount: true },
+      select: { fromUserId: true, toUserId: true, amount: true, currency: true },
     }),
   ]);
 

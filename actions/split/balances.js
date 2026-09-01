@@ -17,15 +17,34 @@ import {
   netBalanceFor,
 } from "@/lib/split/balances";
 import { loadUserLedger, loadGroupLedger } from "@/lib/split/ledger";
+import {
+  currenciesIn,
+  resolveLedgerCurrency,
+  scopeLedgerToCurrency,
+  CurrencyError,
+} from "@/lib/split/currency";
 
 const USER_FIELDS = { id: true, name: true, email: true, imageUrl: true };
+
+/**
+ * Narrow a freshly loaded ledger to the single currency it should be reported
+ * in. Balances across two currencies cannot be added, so every balance action
+ * picks one and says which it picked.
+ */
+function reportIn(raw, me, requested = null) {
+  const available = [...currenciesIn(raw)].sort();
+  const currency = resolveLedgerCurrency(raw, requested, me?.preferredCurrency);
+  return { ledger: scopeLedgerToCurrency(raw, currency), currency, available };
+}
 
 function fail(error) {
   // Next probes server components for static renderability; that probe throws
   // DYNAMIC_SERVER_USAGE. Rethrow so Next can mark the route dynamic instead of
   // swallowing it into a failed result and logging a misleading error.
   if (error?.digest === "DYNAMIC_SERVER_USAGE") throw error;
-  if (error instanceof AccessError) return { success: false, error: error.message };
+  if (error instanceof AccessError || error instanceof CurrencyError) {
+    return { success: false, error: error.message };
+  }
   console.error("[split/balances]", error);
   return { success: false, error: error.message ?? "Something went wrong" };
 }
@@ -39,7 +58,7 @@ function fail(error) {
 export async function getMyBalanceSummary() {
   try {
     const me = await getCurrentAppUser();
-    const ledger = await loadUserLedger(me.id);
+    const { ledger, currency, available } = reportIn(await loadUserLedger(me.id), me);
 
     const perPerson = pairwiseForUser(ledger, me.id);
     const totals = summarizeByCounterparty(perPerson);
@@ -98,6 +117,8 @@ export async function getMyBalanceSummary() {
         },
         people,
         byGroup,
+        currency,
+        availableCurrencies: available,
       },
     };
   } catch (error) {
@@ -111,7 +132,7 @@ export async function getGroupBalances(groupId) {
     const me = await getCurrentAppUser();
     await assertGroupMember(groupId, me.id);
 
-    const ledger = await loadGroupLedger(groupId);
+    const { ledger, currency, available } = reportIn(await loadGroupLedger(groupId), me);
     const net = computeNetBalances(ledger);
     const pairs = computePairwiseBalances(ledger);
 
@@ -132,6 +153,8 @@ export async function getGroupBalances(groupId) {
       success: true,
       data: {
         myUserId: me.id,
+        currency,
+        availableCurrencies: available,
         members: [...net.entries()]
           .map(([userId, value]) => ({
             user: byId.get(userId) ?? null,
@@ -160,12 +183,15 @@ export async function getGroupBalances(groupId) {
 export async function getBalanceWith(otherUserId) {
   try {
     const me = await getCurrentAppUser();
-    const ledger = await loadUserLedger(me.id);
+    const { ledger, currency } = reportIn(await loadUserLedger(me.id), me);
     const perPerson = pairwiseForUser(ledger, me.id);
 
     return {
       success: true,
-      data: { netBalance: (perPerson.get(otherUserId) ?? new Decimal(0)).toNumber() },
+      data: {
+        netBalance: (perPerson.get(otherUserId) ?? new Decimal(0)).toNumber(),
+        currency,
+      },
     };
   } catch (error) {
     return fail(error);
@@ -188,7 +214,7 @@ export async function getBalanceDetail(otherUserId) {
       return fail(new AccessError("NOT_FOUND", "Person not found"));
     }
 
-    const ledger = await loadUserLedger(me.id);
+    const { ledger, currency } = reportIn(await loadUserLedger(me.id), me);
 
     // loadUserLedger omits settlement ids and dates, which this view needs.
     const settlements = await db.settlement.findMany({
@@ -203,6 +229,7 @@ export async function getBalanceDetail(otherUserId) {
         fromUserId: true,
         toUserId: true,
         amount: true,
+        currency: true,
         settledAt: true,
         groupId: true,
         note: true,
@@ -226,14 +253,17 @@ export async function getBalanceDetail(otherUserId) {
       : [];
     const detailById = new Map(details.map((d) => [d.id, d]));
 
-    const enriched = {
-      expenses: ledger.expenses.map((e) => ({
-        ...e,
-        description: detailById.get(e.id)?.description ?? "Expense",
-        date: detailById.get(e.id)?.date ?? null,
-      })),
-      settlements,
-    };
+    const enriched = scopeLedgerToCurrency(
+      {
+        expenses: ledger.expenses.map((e) => ({
+          ...e,
+          description: detailById.get(e.id)?.description ?? "Expense",
+          date: detailById.get(e.id)?.date ?? null,
+        })),
+        settlements,
+      },
+      currency
+    );
 
     const rows = contributionsBetween(enriched, me.id, otherUserId);
     const netBalance = pairwiseForUser(ledger, me.id).get(otherUserId) ?? new Decimal(0);
@@ -242,6 +272,7 @@ export async function getBalanceDetail(otherUserId) {
       success: true,
       data: {
         other,
+        currency,
         netBalance: netBalance.toNumber(),
         rows: rows.map((row) => ({
           kind: row.kind,
@@ -273,7 +304,7 @@ export async function getGroupSimplification(groupId) {
     const me = await getCurrentAppUser();
     await assertGroupMember(groupId, me.id);
 
-    const ledger = await loadGroupLedger(groupId);
+    const { ledger, currency, available } = reportIn(await loadGroupLedger(groupId), me);
     const balances = computeNetBalances(ledger);
     const pairs = computePairwiseBalances(ledger);
 
@@ -296,6 +327,8 @@ export async function getGroupSimplification(groupId) {
       success: true,
       data: {
         myUserId: me.id,
+        currency,
+        availableCurrencies: available,
         verified: plan.verified,
         comparison: plan.comparison,
         current: pairs.map((x) => ({
