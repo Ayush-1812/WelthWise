@@ -5,12 +5,7 @@
 import { PrismaClient } from "@prisma/client";
 import { toDecimal, sum } from "./lib/money.js";
 import { computeSplit } from "./lib/split/engine.js";
-import {
-  buildAnalytics,
-  userTotals,
-  totalSpending,
-  spendingByMember,
-} from "./lib/split/analytics.js";
+import { buildAnalytics, userTotals } from "./lib/split/analytics.js";
 import { filterLedgerByCurrency, currenciesIn } from "./lib/split/currency.js";
 
 const db = new PrismaClient();

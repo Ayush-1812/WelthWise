@@ -621,12 +621,12 @@ There is **no** currency support today. Amounts are `Decimal` with a hardcoded `
 
 ---
 
-## M23 · Shared analytics
+## M23 · Shared analytics ✅ DONE
 
-- [ ] Total group spending, by category, by member, over time
-- [ ] Total paid by user, total recovered, total owed
-- [ ] **Kept separate from personal analytics**
-- [ ] Inter-member transfers are **never** counted as income or expense
+- [x] Total group spending, by category, by member, over time
+- [x] Total paid by user, total recovered, total owed
+- [x] **Kept separate from personal analytics**
+- [x] Inter-member transfers are **never** counted as income or expense
 
 ---
 
