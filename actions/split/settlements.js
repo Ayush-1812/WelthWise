@@ -7,6 +7,7 @@ import { Decimal } from "@/lib/money";
 import {
   getCurrentAppUser,
   assertGroupMember,
+  assertOwnedAccount,
   AccessError,
   ACCESS_CODES,
 } from "@/lib/split/auth";
@@ -131,6 +132,9 @@ export async function createSettlement({
       method,
     });
 
+    // The accountId is caller-supplied and gets written against below.
+    const ownedAccountId = await assertOwnedAccount(accountId, me.id);
+
     const settlementEmails = [];
 
     await db.$transaction(async (tx) => {
@@ -151,7 +155,7 @@ export async function createSettlement({
       await syncSettlementToPersonal(tx, {
         settlementId: settlement.id,
         userId: me.id,
-        accountId: accountId || null,
+        accountId: ownedAccountId,
         fromUserId: direction.fromUserId,
         toUserId: direction.toUserId,
         amount: value,

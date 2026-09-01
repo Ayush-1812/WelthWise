@@ -16,6 +16,7 @@ import {
   summarizeByCounterparty,
   netBalanceFor,
 } from "@/lib/split/balances";
+import { loadUserLedger, loadGroupLedger } from "@/lib/split/ledger";
 
 const USER_FIELDS = { id: true, name: true, email: true, imageUrl: true };
 
@@ -27,71 +28,6 @@ function fail(error) {
   if (error instanceof AccessError) return { success: false, error: error.message };
   console.error("[split/balances]", error);
   return { success: false, error: error.message ?? "Something went wrong" };
-}
-
-/**
- * Load the ledger rows that affect one user's balances.
- *
- * Only expenses the user paid for or has a share in can move their balance, so
- * loading anything wider would be noise. Deleted expenses are excluded, which
- * is what makes a soft delete fully reverse an expense.
- */
-export async function loadUserLedger(userId, { groupId = null } = {}) {
-  const scope = groupId ? { groupId } : {};
-
-  const [expenses, settlements] = await Promise.all([
-    db.sharedExpense.findMany({
-      where: {
-        ...scope,
-        isDeleted: false,
-        OR: [{ paidById: userId }, { splits: { some: { userId } } }],
-      },
-      select: {
-        id: true,
-        groupId: true,
-        paidById: true,
-        amount: true,
-        isDeleted: true,
-        splits: { select: { userId: true, shareAmount: true } },
-      },
-    }),
-    db.settlement.findMany({
-      where: {
-        ...scope,
-        OR: [{ fromUserId: userId }, { toUserId: userId }],
-      },
-      select: {
-        fromUserId: true,
-        toUserId: true,
-        amount: true,
-        groupId: true,
-      },
-    }),
-  ]);
-
-  return { expenses, settlements };
-}
-
-/** Every ledger row in a group, regardless of who is involved. */
-async function loadGroupLedger(groupId) {
-  const [expenses, settlements] = await Promise.all([
-    db.sharedExpense.findMany({
-      where: { groupId, isDeleted: false },
-      select: {
-        id: true,
-        paidById: true,
-        amount: true,
-        isDeleted: true,
-        splits: { select: { userId: true, shareAmount: true } },
-      },
-    }),
-    db.settlement.findMany({
-      where: { groupId },
-      select: { fromUserId: true, toUserId: true, amount: true },
-    }),
-  ]);
-
-  return { expenses, settlements };
 }
 
 /**

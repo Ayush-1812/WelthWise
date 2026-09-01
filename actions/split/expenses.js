@@ -9,6 +9,7 @@ import {
   assertValidParticipants,
   assertCanViewExpense,
   assertCanEditExpense,
+  assertOwnedAccount,
   AccessError,
   ACCESS_CODES,
 } from "@/lib/split/auth";
@@ -173,6 +174,10 @@ export async function createSharedExpense(input) {
       throw new SplitError(check.errors[0]);
     }
 
+    // An accountId arrives straight from the request and is written against
+    // below, so prove it is the caller's before opening the transaction.
+    const accountId = await assertOwnedAccount(data.accountId, me.id);
+
     const notifyEmails = [];
 
     const expense = await db.$transaction(async (tx) => {
@@ -218,7 +223,7 @@ export async function createSharedExpense(input) {
         await syncExpenseToPersonal(tx, {
           expenseId: created.id,
           userId: me.id,
-          accountId: data.accountId || null,
+          accountId,
           paidById: data.paidById,
           amount,
           myShare:
@@ -614,6 +619,9 @@ export async function updateSharedExpense(expenseId, input) {
       }
     }
 
+    // Same as create: never write against an account the caller does not own.
+    const requestedAccountId = await assertOwnedAccount(data.accountId, me.id);
+
     await db.$transaction(async (tx) => {
       // Rewrite splits wholesale - a diff would risk leaving a stale row that
       // makes the splits stop summing to the total.
@@ -665,7 +673,9 @@ export async function updateSharedExpense(expenseId, input) {
       await syncExpenseToPersonal(tx, {
         expenseId,
         userId: me.id,
-        accountId: data.accountId || previousAccountId,
+        // previousAccountId came from the caller's own Transaction row, so it
+        // needs no re-check; only the requested one is untrusted.
+        accountId: requestedAccountId || previousAccountId,
         paidById: data.paidById,
         amount,
         myShare: splits.find((s2) => s2.userId === me.id)?.shareAmount ?? 0,
