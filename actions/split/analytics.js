@@ -27,8 +27,14 @@ function fail(error) {
   return { success: false, error: error.message ?? "Something went wrong" };
 }
 
-/** Fields analytics needs that the balance loaders do not select. */
-async function loadAnalyticsLedger(where) {
+/**
+ * Fields analytics needs that the balance loaders do not select.
+ *
+ * The settlement filter is passed in rather than derived from the expense
+ * filter: inferring it meant the non-group path fell through to an empty
+ * where clause, reading every settlement row in the database.
+ */
+async function loadAnalyticsLedger(where, settlementWhere) {
   const [expenses, settlements] = await Promise.all([
     db.sharedExpense.findMany({
       where,
@@ -44,7 +50,7 @@ async function loadAnalyticsLedger(where) {
       },
     }),
     db.settlement.findMany({
-      where: where.groupId ? { groupId: where.groupId } : {},
+      where: settlementWhere,
       select: { fromUserId: true, toUserId: true, amount: true, currency: true },
     }),
   ]);
@@ -77,7 +83,10 @@ export async function getGroupAnalytics(groupId, { currency = null } = {}) {
     const me = await getCurrentAppUser();
     await assertGroupMember(groupId, me.id);
 
-    const ledger = await loadAnalyticsLedger({ groupId, isDeleted: false });
+    const ledger = await loadAnalyticsLedger(
+      { groupId, isDeleted: false },
+      { groupId }
+    );
     const currencies = [...currenciesIn(ledger)].sort();
     const resolved = resolveCurrency(ledger, currency, me.preferredCurrency);
     const scoped = currencies.length > 1 ? filterLedgerByCurrency(ledger, resolved) : ledger;
@@ -115,14 +124,18 @@ export async function getMyAnalytics({ currency = null } = {}) {
   try {
     const me = await getCurrentAppUser();
 
-    const ledger = await loadAnalyticsLedger({
-      isDeleted: false,
-      OR: [
-        { paidById: me.id },
-        { splits: { some: { userId: me.id } } },
-        { group: { members: { some: { userId: me.id, leftAt: null } } } },
-      ],
-    });
+    const ledger = await loadAnalyticsLedger(
+      {
+        isDeleted: false,
+        OR: [
+          { paidById: me.id },
+          { splits: { some: { userId: me.id } } },
+          { group: { members: { some: { userId: me.id, leftAt: null } } } },
+        ],
+      },
+      // Only settlements the caller is party to - never the whole table.
+      { OR: [{ fromUserId: me.id }, { toUserId: me.id }] }
+    );
 
     const currencies = [...currenciesIn(ledger)].sort();
     const resolved = resolveCurrency(ledger, currency, me.preferredCurrency);
