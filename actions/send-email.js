@@ -1,4 +1,14 @@
-"use server";
+import "server-only";
+
+/**
+ * Server-side email delivery.
+ *
+ * Deliberately NOT a "use server" action. Every export of such a module is a
+ * callable endpoint, and this function takes an arbitrary recipient and
+ * subject - as an action it was an open relay on our own Resend account and
+ * sending domain. Its only callers are server-side (notify.js and the Inngest
+ * jobs), so it belongs in a server-only module.
+ */
 
 import { Resend } from "resend";
 

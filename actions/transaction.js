@@ -230,6 +230,12 @@ export async function getUserTransactions(query = {}) {
 // Scan Receipt
 export async function scanReceipt(file) {
   try {
+    // This action is imported by a client component, so its id ships in the
+    // browser bundle and it is callable by anyone who has loaded the app.
+    // Without this check it is unauthenticated access to the Gemini key.
+    const { userId } = await auth();
+    if (!userId) throw new Error("Unauthorized");
+
     const model = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
 
     // Convert File to ArrayBuffer
