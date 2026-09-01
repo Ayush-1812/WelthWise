@@ -18,6 +18,7 @@ import {
 import { canonicalPair } from "@/lib/split/access";
 import { pairwiseForUser } from "@/lib/split/balances";
 import { loadUserLedger } from "@/lib/split/ledger";
+import { reportLedgerIn } from "@/lib/split/currency";
 import { queueNotifications } from "./notify";
 
 const USER_FIELDS = { id: true, name: true, email: true, imageUrl: true };
@@ -93,7 +94,9 @@ export async function getFriends() {
     });
 
     // Balances are derived from the ledger, never stored (task.md section 1).
-    const ledger = await loadUserLedger(me.id);
+    const { ledger, currency } = reportLedgerIn(await loadUserLedger(me.id), {
+      preferred: me.preferredCurrency,
+    });
     const perPerson = pairwiseForUser(ledger, me.id);
 
     const data = rows.map((row) => {
@@ -103,7 +106,7 @@ export async function getFriends() {
       return toFriendView(row, me.id, friend, net ? net.toNumber() : 0);
     });
 
-    return { success: true, data };
+    return { success: true, data, currency };
   } catch (error) {
     return fail(error);
   }

@@ -32,7 +32,13 @@ import {
 
 import { FriendAvatar } from "../../friends/_components/friend-avatar";
 
-export function SettleUpDrawer({ targets = [], myUserId, initialUserId, children }) {
+export function SettleUpDrawer({
+  targets = [],
+  myUserId,
+  initialUserId,
+  currency,
+  children,
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [otherUserId, setOtherUserId] = useState(
@@ -81,7 +87,7 @@ export function SettleUpDrawer({ targets = [], myUserId, initialUserId, children
       toast.success(
         isFull
           ? "Settled up in full"
-          : `Payment recorded — ${formatMoney(remaining)} still outstanding`
+          : `Payment recorded — ${formatMoney(remaining, currency)} still outstanding`
       );
       setAmount("");
       setNote("");
@@ -117,7 +123,7 @@ export function SettleUpDrawer({ targets = [], myUserId, initialUserId, children
                       <SelectItem key={t.user.id} value={t.user.id}>
                         {t.user.name || t.user.email} —{" "}
                         {t.iPay ? "you owe " : "owes you "}
-                        {formatMoney(t.outstanding)}
+                        {formatMoney(t.outstanding, currency)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -135,7 +141,7 @@ export function SettleUpDrawer({ targets = [], myUserId, initialUserId, children
                           : `${target.user.name || target.user.email} pays you`}
                       </span>
                       <span className="block text-xs text-muted-foreground">
-                        {formatMoney(target.outstanding)} outstanding
+                        {formatMoney(target.outstanding, currency)} outstanding
                       </span>
                     </span>
                   </span>
@@ -173,7 +179,7 @@ export function SettleUpDrawer({ targets = [], myUserId, initialUserId, children
                   <p className="text-sm text-muted-foreground">
                     {check.isFull
                       ? "This clears the balance completely."
-                      : `${formatMoney(check.remaining)} will still be outstanding.`}
+                      : `${formatMoney(check.remaining, currency)} will still be outstanding.`}
                   </p>
                 )}
               </div>

@@ -7,6 +7,7 @@ import { pairwiseForUser, summarizeByCounterparty } from "@/lib/split/balances";
 import { describeSchedule } from "@/lib/split/recurring";
 
 import { loadUserLedger } from "@/lib/split/ledger";
+import { reportLedgerIn } from "@/lib/split/currency";
 
 const USER_FIELDS = { id: true, name: true, email: true, imageUrl: true };
 
@@ -119,10 +120,15 @@ export async function getDashboardSplitSummary() {
         }),
       ]);
 
-    const perPerson = pairwiseForUser(ledger, me.id);
+    // Scope before computing: an unscoped mixed ledger would throw.
+    const { ledger: scoped, currency } = reportLedgerIn(ledger, {
+      preferred: me.preferredCurrency,
+    });
+    const perPerson = pairwiseForUser(scoped, me.id);
     const summary = summarizeByCounterparty(perPerson);
 
     const data = {
+      currency,
       totals: {
         youOwe: summary.youOwe.toNumber(),
         owedToYou: summary.owedToYou.toNumber(),

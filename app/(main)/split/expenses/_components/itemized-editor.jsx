@@ -15,7 +15,14 @@ import { checkItemsTotal, emptyItem } from "@/lib/split/itemized";
  * shared it. The running total against the expense amount is shown live,
  * because the two must reconcile exactly before the expense can be saved.
  */
-export function ItemizedEditor({ candidates, participantIds, amount, items, onChange }) {
+export function ItemizedEditor({
+  candidates,
+  participantIds,
+  amount,
+  currency,
+  items,
+  onChange,
+}) {
   const rows = items ?? [];
   const participants = candidates.filter((c) => participantIds.includes(c.id));
 
@@ -138,9 +145,10 @@ export function ItemizedEditor({ candidates, participantIds, amount, items, onCh
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
           )}
           {status.ok
-            ? `Items add up to ${formatMoney(status.actual)}.`
-            : `Items add up to ${formatMoney(status.actual)} — ${formatMoney(
-                status.difference.abs()
+            ? `Items add up to ${formatMoney(status.actual, currency)}.`
+            : `Items add up to ${formatMoney(status.actual, currency)} — ${formatMoney(
+                status.difference.abs(),
+                currency
               )} ${status.difference.isPositive() ? "over" : "left to account for"}.`}
         </p>
       )}

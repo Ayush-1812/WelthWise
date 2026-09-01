@@ -12,7 +12,7 @@ import { removeFriend } from "@/actions/split/friends";
 import { FriendAvatar } from "./friend-avatar";
 
 /** Net balance wording. Positive means they owe you (task.md section 1). */
-function BalanceLabel({ netBalance }) {
+function BalanceLabel({ netBalance, currency }) {
   if (!netBalance) {
     return <span className="text-sm text-muted-foreground">Settled up</span>;
   }
@@ -25,7 +25,7 @@ function BalanceLabel({ netBalance }) {
       }`}
     >
       {owesYou ? "owes you " : "you owe "}
-      {formatMoney(Math.abs(netBalance))}
+      {formatMoney(Math.abs(netBalance), currency)}
     </span>
   );
 }

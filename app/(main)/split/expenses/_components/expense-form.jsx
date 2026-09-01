@@ -435,6 +435,7 @@ export function ExpenseForm({ context, initial = null }) {
               setValues((current) => ({ ...current, [userId]: value }))
             }
             amount={amount}
+            currency={currency}
             payerId={paidById}
             items={items}
             onItemsChange={setItems}

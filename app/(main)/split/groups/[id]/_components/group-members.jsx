@@ -38,7 +38,7 @@ const ROLE_BADGE = {
   ADMIN: { label: "Admin", icon: Shield },
 };
 
-function MemberBalance({ netBalance }) {
+function MemberBalance({ netBalance, currency }) {
   if (!netBalance) {
     return <span className="text-sm text-muted-foreground">Settled</span>;
   }
@@ -48,7 +48,7 @@ function MemberBalance({ netBalance }) {
       className={`text-sm font-medium ${isOwed ? "text-green-600" : "text-red-600"}`}
     >
       {isOwed ? "+" : "-"}
-      {formatMoney(Math.abs(netBalance))}
+      {formatMoney(Math.abs(netBalance), currency)}
     </span>
   );
 }

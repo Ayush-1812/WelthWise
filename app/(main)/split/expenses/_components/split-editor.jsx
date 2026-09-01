@@ -46,6 +46,7 @@ export function SplitEditor({
   values,
   onValueChange,
   amount,
+  currency,
   payerId,
   items,
   onItemsChange,
@@ -84,6 +85,7 @@ export function SplitEditor({
           candidates={candidates}
           participantIds={participantIds}
           amount={amount}
+          currency={currency}
           items={items}
           onChange={onItemsChange}
         />
@@ -160,7 +162,7 @@ export function SplitEditor({
                       share ? "" : "text-muted-foreground"
                     )}
                   >
-                    {share ? formatMoney(share) : "—"}
+                    {share ? formatMoney(share, currency) : "—"}
                   </span>
                 )}
               </div>
@@ -211,7 +213,7 @@ function SplitStatus({ error, splits, amount, participantCount }) {
   return (
     <p className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-700">
       <CheckCircle2 className="h-4 w-4 shrink-0" />
-      Splits add up to {formatMoney(amount)} across {participantCount}{" "}
+      Splits add up to {formatMoney(amount, currency)} across {participantCount}{" "}
       {participantCount === 1 ? "person" : "people"}.
     </p>
   );

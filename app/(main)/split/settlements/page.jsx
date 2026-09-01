@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { formatMoney } from "@/lib/format";
+import { DEFAULT_CURRENCY } from "@/lib/split/currency";
 import { SETTLEMENT_METHODS } from "@/lib/split/settlements";
 import {
   getSettlements,
@@ -31,9 +32,9 @@ export default async function SplitSettlementsPage() {
   ]);
 
   const settlements = historyResult.success ? historyResult.data : [];
-  const { targets, myUserId } = targetsResult.success
+  const { targets, myUserId, currency } = targetsResult.success
     ? targetsResult.data
-    : { targets: [], myUserId: null };
+    : { targets: [], myUserId: null, currency: DEFAULT_CURRENCY };
 
   const outstandingCount = targets.length;
 
@@ -88,7 +89,7 @@ export default async function SplitSettlementsPage() {
                         t.iPay ? "text-red-600" : "text-green-600"
                       }`}
                     >
-                      {formatMoney(t.outstanding)}
+                      {formatMoney(t.outstanding, currency)}
                     </span>
                     <SettleUpDrawer
                       targets={targets}
@@ -171,7 +172,7 @@ export default async function SplitSettlementsPage() {
                           s.sentByMe ? "text-red-600" : "text-green-600"
                         }`}
                       >
-                        {formatMoney(s.amount)}
+                        {formatMoney(s.amount, s.currency)}
                       </span>
                     </span>
                   </li>

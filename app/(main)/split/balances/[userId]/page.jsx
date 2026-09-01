@@ -28,7 +28,7 @@ export default async function BalanceDetailPage({ params }) {
   ]);
   if (!result.success) notFound();
 
-  const { other, netBalance, rows } = result.data;
+  const { other, netBalance, rows, currency } = result.data;
   const { targets, myUserId } = targetsResult.success
     ? targetsResult.data
     : { targets: [], myUserId: null };
@@ -72,7 +72,7 @@ export default async function BalanceDetailPage({ params }) {
                       netBalance > 0 ? "text-green-600" : "text-red-600"
                     }`}
                   >
-                    {formatMoney(Math.abs(netBalance))}
+                    {formatMoney(Math.abs(netBalance), currency)}
                   </p>
                   <p className="text-sm text-muted-foreground">
                     {netBalance > 0 ? `${name} owes you` : `you owe ${name}`}
@@ -144,12 +144,12 @@ export default async function BalanceDetailPage({ params }) {
                           <>
                             {" · "}
                             {row.paidByMe ? "you paid" : `${name} paid`}{" "}
-                            {formatMoney(row.amount)}
+                            {formatMoney(row.amount, currency)}
                             {row.share !== null && (
                               <>
                                 {" · "}
                                 {row.paidByMe ? "their" : "your"} share{" "}
-                                {formatMoney(row.share)}
+                                {formatMoney(row.share, currency)}
                               </>
                             )}
                           </>
@@ -170,7 +170,7 @@ export default async function BalanceDetailPage({ params }) {
                     }`}
                   >
                     {row.contribution > 0 ? "+" : "-"}
-                    {formatMoney(Math.abs(row.contribution))}
+                    {formatMoney(Math.abs(row.contribution), currency)}
                   </span>
                 </li>
               ))}
@@ -187,7 +187,7 @@ export default async function BalanceDetailPage({ params }) {
                   }`}
                 >
                   {netBalance > 0 ? "+" : netBalance < 0 ? "-" : ""}
-                  {formatMoney(Math.abs(netBalance))}
+                  {formatMoney(Math.abs(netBalance), currency)}
                 </span>
               </li>
             </ul>

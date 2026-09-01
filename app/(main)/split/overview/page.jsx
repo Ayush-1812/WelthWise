@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { formatMoney } from "@/lib/format";
+import { DEFAULT_CURRENCY } from "@/lib/split/currency";
 import { getMyBalanceSummary } from "@/actions/split/balances";
 
 import { SPLIT_SECTIONS } from "../_components/split-nav";
@@ -17,9 +18,14 @@ import { FriendAvatar } from "../friends/_components/friend-avatar";
 
 export default async function SplitOverviewPage() {
   const result = await getMyBalanceSummary();
-  const { totals, people, byGroup } = result.success
+  const { totals, people, byGroup, currency } = result.success
     ? result.data
-    : { totals: { youOwe: 0, owedToYou: 0, net: 0 }, people: [], byGroup: [] };
+    : {
+        totals: { youOwe: 0, owedToYou: 0, net: 0 },
+        people: [],
+        byGroup: [],
+        currency: DEFAULT_CURRENCY,
+      };
 
   const summary = [
     {
@@ -64,7 +70,7 @@ export default async function SplitOverviewPage() {
             </CardHeader>
             <CardContent>
               <p className={`text-3xl font-bold ${className}`}>
-                {formatMoney(Math.abs(value))}
+                {formatMoney(Math.abs(value), currency)}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
             </CardContent>
@@ -112,7 +118,7 @@ export default async function SplitOverviewPage() {
                       }`}
                     >
                       {netBalance > 0 ? "owes you " : "you owe "}
-                      {formatMoney(Math.abs(netBalance))}
+                      {formatMoney(Math.abs(netBalance), currency)}
                     </span>
                   </li>
                 ))}
@@ -167,7 +173,7 @@ export default async function SplitOverviewPage() {
                         }`}
                       >
                         {netBalance > 0 ? "+" : "-"}
-                        {formatMoney(Math.abs(netBalance))}
+                        {formatMoney(Math.abs(netBalance), currency)}
                       </span>
                     </Link>
                   </li>

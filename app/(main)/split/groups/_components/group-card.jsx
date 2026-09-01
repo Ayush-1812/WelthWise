@@ -10,7 +10,7 @@ import { formatMoney } from "@/lib/format";
 import { FriendAvatar } from "../../friends/_components/friend-avatar";
 
 /** Positive net means the group owes you (task.md section 1). */
-function GroupBalance({ netBalance }) {
+function GroupBalance({ netBalance, currency }) {
   if (!netBalance) {
     return <span className="text-sm text-muted-foreground">Settled up</span>;
   }
@@ -23,7 +23,7 @@ function GroupBalance({ netBalance }) {
       }`}
     >
       {owedToYou ? "you are owed " : "you owe "}
-      {formatMoney(Math.abs(netBalance))}
+      {formatMoney(Math.abs(netBalance), currency)}
     </span>
   );
 }

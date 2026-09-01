@@ -79,7 +79,7 @@ export default async function SharedExpenseDetailPage({ params }) {
               </CardTitle>
               <CardDescription>
                 {paidByMe ? "You" : payerName} paid{" "}
-                {formatMoney(expense.amount)}
+                {formatMoney(expense.amount, expense.currency)}
                 {expense.group && (
                   <>
                     {" in "}
@@ -88,7 +88,7 @@ export default async function SharedExpenseDetailPage({ params }) {
                 )}
               </CardDescription>
             </div>
-            <p className="text-3xl font-bold">{formatMoney(expense.amount)}</p>
+            <p className="text-3xl font-bold">{formatMoney(expense.amount, expense.currency)}</p>
           </div>
         </CardHeader>
 
@@ -175,14 +175,14 @@ export default async function SharedExpenseDetailPage({ params }) {
                   </span>
                 </span>
                 <span className="shrink-0 text-sm font-semibold tabular-nums">
-                  {formatMoney(split.shareAmount)}
+                  {formatMoney(split.shareAmount, expense.currency)}
                 </span>
               </li>
             ))}
             <li className="flex items-center justify-between gap-4 bg-muted/40 px-6 py-3">
               <span className="text-sm font-medium">Total</span>
               <span className="text-sm font-bold tabular-nums">
-                {formatMoney(expense.amount)}
+                {formatMoney(expense.amount, expense.currency)}
               </span>
             </li>
           </ul>
@@ -220,7 +220,7 @@ export default async function SharedExpenseDetailPage({ params }) {
                     {paidByMe ? "you" : payerName}
                   </span>{" "}
                   <span className="font-semibold">
-                    {formatMoney(split.shareAmount)}
+                    {formatMoney(split.shareAmount, expense.currency)}
                   </span>
                 </li>
               ))}

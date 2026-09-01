@@ -21,7 +21,7 @@ import { FriendAvatar } from "../../../friends/_components/friend-avatar";
 export function SimplifyDebts({ data }) {
   if (!data) return null;
 
-  const { current, simplified, comparison, verified, myUserId } = data;
+  const { current, simplified, comparison, verified, myUserId, currency } = data;
 
   if (current.length === 0) {
     return (
@@ -103,7 +103,7 @@ export function SimplifyDebts({ data }) {
                 </span>
               </div>
               <span className="shrink-0 text-sm font-semibold tabular-nums">
-                {formatMoney(row.amount)}
+                {formatMoney(row.amount, currency)}
               </span>
             </div>
           );

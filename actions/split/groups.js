@@ -23,6 +23,8 @@ import {
   sortMembers,
 } from "@/lib/split/groups";
 import { computeNetBalances, netBalanceFor } from "@/lib/split/balances";
+import { loadGroupLedger } from "@/lib/split/ledger";
+import { reportLedgerIn } from "@/lib/split/currency";
 import { queueNotifications, deliverEmailsInBackground } from "./notify";
 
 const USER_FIELDS = { id: true, name: true, email: true, imageUrl: true };
@@ -41,26 +43,9 @@ function fail(error) {
  * Load a group's ledger rows for balance derivation.
  * Balances are never stored - see task.md section 1.
  */
-async function loadGroupLedger(groupId) {
-  const [expenses, settlements] = await Promise.all([
-    db.sharedExpense.findMany({
-      where: { groupId, isDeleted: false },
-      select: {
-        id: true,
-        paidById: true,
-        amount: true,
-        isDeleted: true,
-        splits: { select: { userId: true, shareAmount: true } },
-      },
-    }),
-    db.settlement.findMany({
-      where: { groupId },
-      select: { fromUserId: true, toUserId: true, amount: true },
-    }),
-  ]);
-
-  return { expenses, settlements };
-}
+// loadGroupLedger lives in lib/split/ledger.js. A private copy here used to
+// drift from it - notably it never selected `currency`, so this file summed
+// two currencies together long after the shared loader stopped doing so.
 
 /** Groups the caller is an active member of, with their own net balance. */
 export async function getGroups() {
@@ -87,7 +72,10 @@ export async function getGroups() {
     const archived = memberships.filter((m) => m.group.isArchived);
 
     const shape = async (membership) => {
-      const ledger = await loadGroupLedger(membership.groupId);
+      const { ledger, currency } = reportLedgerIn(
+        await loadGroupLedger(membership.groupId),
+        { preferred: me.preferredCurrency }
+      );
       const net = netBalanceFor(ledger, me.id);
 
       return {
@@ -101,6 +89,7 @@ export async function getGroups() {
         expenseCount: membership.group._count.expenses,
         members: membership.group.members.map((m) => m.user),
         netBalance: net.toNumber(),
+        currency,
       };
     };
 
@@ -135,7 +124,9 @@ export async function getGroup(groupId) {
 
     if (!group) throw new AccessError(ACCESS_CODES.NOT_FOUND, "Group not found");
 
-    const ledger = await loadGroupLedger(groupId);
+    const { ledger, currency } = reportLedgerIn(await loadGroupLedger(groupId), {
+      preferred: me.preferredCurrency,
+    });
     const net = computeNetBalances(ledger);
 
     const members = sortMembers(group.members).map((m) => ({
@@ -160,6 +151,7 @@ export async function getGroup(groupId) {
         settlementCount: group._count.settlements,
         myRole: members.find((m) => m.userId === me.id)?.role ?? "MEMBER",
         myUserId: me.id,
+        currency,
         members,
       }),
     };
@@ -380,7 +372,9 @@ export async function removeGroupMember(groupId, targetUserId) {
       );
     }
 
-    const ledger = await loadGroupLedger(groupId);
+    const { ledger } = reportLedgerIn(await loadGroupLedger(groupId), {
+      preferred: me.preferredCurrency,
+    });
     const net = netBalanceFor(ledger, targetUserId);
 
     if (!isSettledForRemoval(net)) {
@@ -506,7 +500,9 @@ export async function setGroupArchived(groupId, isArchived) {
     }
 
     if (isArchived) {
-      const ledger = await loadGroupLedger(groupId);
+      const { ledger } = reportLedgerIn(await loadGroupLedger(groupId), {
+        preferred: me.preferredCurrency,
+      });
       const net = computeNetBalances(ledger);
       const unsettled = [...net.values()].some((v) => !v.isZero());
 

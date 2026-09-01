@@ -170,7 +170,7 @@ export function ExpenseBrowser({ initial, options }) {
                             {expense.paidByMe
                               ? "You paid"
                               : `${expense.paidBy?.name || expense.paidBy?.email} paid`}{" "}
-                            {formatMoney(expense.amount)}
+                            {formatMoney(expense.amount, expense.currency)}
                           </span>
                           {expense.group && (
                             <>
@@ -205,13 +205,13 @@ export function ExpenseBrowser({ initial, options }) {
                           }
                         >
                           {expense.myImpact > 0
-                            ? `+${formatMoney(expense.myImpact)}`
+                            ? `+${formatMoney(expense.myImpact, expense.currency)}`
                             : expense.myImpact < 0
-                              ? `-${formatMoney(Math.abs(expense.myImpact))}`
-                              : formatMoney(0)}
+                              ? `-${formatMoney(Math.abs(expense.myImpact), expense.currency)}`
+                              : formatMoney(0, expense.currency)}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          your share {formatMoney(expense.myShare)}
+                          your share {formatMoney(expense.myShare, expense.currency)}
                         </p>
                       </div>
                     </div>

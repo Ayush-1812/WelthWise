@@ -9,15 +9,21 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { formatMoney } from "@/lib/format";
+import { DEFAULT_CURRENCY } from "@/lib/split/currency";
 import { getMyBalanceSummary } from "@/actions/split/balances";
 
 import { FriendAvatar } from "../friends/_components/friend-avatar";
 
 export default async function SplitBalancesPage() {
   const result = await getMyBalanceSummary();
-  const { totals, people, byGroup } = result.success
+  const { totals, people, byGroup, currency } = result.success
     ? result.data
-    : { totals: { youOwe: 0, owedToYou: 0, net: 0 }, people: [], byGroup: [] };
+    : {
+        totals: { youOwe: 0, owedToYou: 0, net: 0 },
+        people: [],
+        byGroup: [],
+        currency: DEFAULT_CURRENCY,
+      };
 
   const owedToYou = people.filter((p) => p.netBalance > 0);
   const youOwe = people.filter((p) => p.netBalance < 0);
@@ -29,7 +35,7 @@ export default async function SplitBalancesPage() {
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground">You owe</p>
             <p className="text-2xl font-bold text-red-600">
-              {formatMoney(totals.youOwe)}
+              {formatMoney(totals.youOwe, currency)}
             </p>
           </CardContent>
         </Card>
@@ -37,7 +43,7 @@ export default async function SplitBalancesPage() {
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground">Owed to you</p>
             <p className="text-2xl font-bold text-green-600">
-              {formatMoney(totals.owedToYou)}
+              {formatMoney(totals.owedToYou, currency)}
             </p>
           </CardContent>
         </Card>
@@ -53,7 +59,7 @@ export default async function SplitBalancesPage() {
                     : "text-muted-foreground"
               }`}
             >
-              {formatMoney(Math.abs(totals.net))}
+              {formatMoney(Math.abs(totals.net), currency)}
             </p>
           </CardContent>
         </Card>
@@ -122,7 +128,7 @@ export default async function SplitBalancesPage() {
                       }`}
                     >
                       {netBalance > 0 ? "+" : "-"}
-                      {formatMoney(Math.abs(netBalance))}
+                      {formatMoney(Math.abs(netBalance), currency)}
                     </span>
                   </Link>
                 </li>
@@ -174,7 +180,7 @@ function BalanceList({ title, description, entries, emptyText }) {
                         netBalance > 0 ? "text-green-600" : "text-red-600"
                       }`}
                     >
-                      {formatMoney(Math.abs(netBalance))}
+                      {formatMoney(Math.abs(netBalance), currency)}
                     </span>
                     <ChevronRight className="h-4 w-4 text-muted-foreground" />
                   </span>
