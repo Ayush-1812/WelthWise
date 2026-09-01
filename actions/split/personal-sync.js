@@ -46,7 +46,10 @@ async function writeEntries(tx, { entries, userId, accountId, link }) {
 
   await tx.account.update({
     where: { id: accountId },
-    data: { balance: { increment: delta.toNumber() } },
+    // A decimal string, not toNumber(): Prisma stores this column as DECIMAL,
+    // and routing money through a binary float is the one thing lib/money.js
+    // exists to prevent.
+    data: { balance: { increment: delta.toFixed(2) } },
   });
 }
 
@@ -74,7 +77,7 @@ async function removeLinked(tx, where) {
   for (const [accountId, delta] of byAccount) {
     await tx.account.update({
       where: { id: accountId },
-      data: { balance: { increment: delta.toNumber() } },
+      data: { balance: { increment: delta.toFixed(2) } },
     });
   }
 }

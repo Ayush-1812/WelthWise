@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { toDecimal } from "@/lib/money";
 import aj from "@/lib/arcjet";
 import { request } from "@arcjet/next";
 
@@ -66,8 +67,13 @@ export async function createTransaction(data) {
     }
 
     // Calculate new balance
-    const balanceChange = data.type === "EXPENSE" ? -data.amount : data.amount;
-    const newBalance = account.balance.toNumber() + balanceChange;
+    // Decimal throughout: reading the balance out as a float, adding, and
+    // writing it back re-quantises the whole balance on every transaction.
+    const balanceChange =
+      data.type === "EXPENSE"
+        ? toDecimal(data.amount).negated()
+        : toDecimal(data.amount);
+    const newBalance = toDecimal(account.balance).plus(balanceChange);
 
     // Create transaction and update account balance
     const transaction = await db.$transaction(async (tx) => {
@@ -84,7 +90,7 @@ export async function createTransaction(data) {
 
       await tx.account.update({
         where: { id: data.accountId },
-        data: { balance: newBalance },
+        data: { balance: newBalance.toFixed(2) },
       });
 
       return newTransaction;
@@ -148,13 +154,15 @@ export async function updateTransaction(id, data) {
     // Calculate balance changes
     const oldBalanceChange =
       originalTransaction.type === "EXPENSE"
-        ? -originalTransaction.amount.toNumber()
-        : originalTransaction.amount.toNumber();
+        ? toDecimal(originalTransaction.amount).negated()
+        : toDecimal(originalTransaction.amount);
 
     const newBalanceChange =
-      data.type === "EXPENSE" ? -data.amount : data.amount;
+      data.type === "EXPENSE"
+        ? toDecimal(data.amount).negated()
+        : toDecimal(data.amount);
 
-    const netBalanceChange = newBalanceChange - oldBalanceChange;
+    const netBalanceChange = newBalanceChange.minus(oldBalanceChange);
 
     // Update transaction and account balance in a transaction
     const transaction = await db.$transaction(async (tx) => {
@@ -177,7 +185,7 @@ export async function updateTransaction(id, data) {
         where: { id: data.accountId },
         data: {
           balance: {
-            increment: netBalanceChange,
+            increment: netBalanceChange.toFixed(2),
           },
         },
       });
