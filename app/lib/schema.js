@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { CURRENCY_CODES, DEFAULT_CURRENCY } from "@/lib/split/currency";
+
 export const accountSchema = z.object({
   name: z.string().min(1, "Name is required"),
   type: z.enum(["CURRENT", "SAVINGS"]),
@@ -52,6 +54,10 @@ export const sharedExpenseSchema = z
   .object({
     description: z.string().min(1, "Description is required").max(140),
     amount: z.string().min(1, "Amount is required"),
+    // The currency the expense was actually incurred in. Restricted to what the
+    // rate source can price, and defaulted rather than left undefined so it can
+    // never be silently dropped on its way to the database.
+    currency: z.enum(CURRENCY_CODES).default(DEFAULT_CURRENCY),
     date: z.date({ required_error: "Date is required" }),
     category: z.string().min(1, "Category is required"),
     // null for a direct 1:1 friend expense

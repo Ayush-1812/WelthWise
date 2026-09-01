@@ -186,6 +186,7 @@ export async function createSharedExpense(input) {
           groupId,
           description: data.description.trim(),
           amount,
+          currency: data.currency,
           date: data.date,
           category: data.category,
           notes: data.notes?.trim() || null,
@@ -633,6 +634,7 @@ export async function updateSharedExpense(expenseId, input) {
         data: {
           description: data.description.trim(),
           amount,
+          currency: data.currency,
           date: data.date,
           category: data.category,
           notes: data.notes?.trim() || null,

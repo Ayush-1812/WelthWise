@@ -30,6 +30,11 @@ import {
   updateSharedExpense,
 } from "@/actions/split/expenses";
 import { computeSplit, validateSplit } from "@/lib/split/engine";
+import {
+  CURRENCIES,
+  CURRENCY_CODES,
+  DEFAULT_CURRENCY,
+} from "@/lib/split/currency";
 
 import { emptyItem } from "@/lib/split/itemized";
 
@@ -72,6 +77,9 @@ export function ExpenseForm({ context, initial = null }) {
 
   const [contextKey, setContextKey] = useState(initialKey);
   const [description, setDescription] = useState(initial?.description ?? "");
+  const [currency, setCurrency] = useState(
+    initial?.currency || DEFAULT_CURRENCY
+  );
   const [amount, setAmount] = useState(
     initial ? String(initial.amount) : ""
   );
@@ -153,6 +161,7 @@ export function ExpenseForm({ context, initial = null }) {
     const payload = {
       description,
       amount,
+      currency,
       date,
       category,
       notes,
@@ -236,17 +245,36 @@ export function ExpenseForm({ context, initial = null }) {
               <label htmlFor="amount" className="text-sm font-medium">
                 Amount
               </label>
-              <Input
-                id="amount"
-                type="number"
-                step="0.01"
-                min="0.01"
-                inputMode="decimal"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="0.00"
-                required
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="amount"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  inputMode="decimal"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="0.00"
+                  required
+                  className="flex-1"
+                />
+                <Select value={currency} onValueChange={setCurrency}>
+                  <SelectTrigger className="w-[110px] shrink-0">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CURRENCY_CODES.map((code) => (
+                      <SelectItem key={code} value={code}>
+                        {CURRENCIES[code].symbol} {code}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Balances are tracked separately per currency and never added
+                together.
+              </p>
             </div>
 
             <div className="space-y-2">
