@@ -18,7 +18,7 @@ import {
   SettlementError,
 } from "@/lib/split/settlements";
 
-import { loadUserLedger } from "./balances";
+import { loadUserLedger } from "@/lib/split/ledger";
 import { syncSettlementToPersonal } from "./personal-sync";
 import { queueNotifications, deliverEmailsInBackground } from "./notify";
 

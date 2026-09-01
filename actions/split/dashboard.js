@@ -6,7 +6,7 @@ import { getCurrentAppUser, AccessError } from "@/lib/split/auth";
 import { pairwiseForUser, summarizeByCounterparty } from "@/lib/split/balances";
 import { describeSchedule } from "@/lib/split/recurring";
 
-import { loadUserLedger } from "./balances";
+import { loadUserLedger } from "@/lib/split/ledger";
 
 const USER_FIELDS = { id: true, name: true, email: true, imageUrl: true };
 

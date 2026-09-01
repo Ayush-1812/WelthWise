@@ -17,7 +17,7 @@ import {
 } from "@/lib/split/friends";
 import { canonicalPair } from "@/lib/split/access";
 import { pairwiseForUser } from "@/lib/split/balances";
-import { loadUserLedger } from "./balances";
+import { loadUserLedger } from "@/lib/split/ledger";
 import { queueNotifications } from "./notify";
 
 const USER_FIELDS = { id: true, name: true, email: true, imageUrl: true };
