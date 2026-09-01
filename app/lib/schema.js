@@ -40,6 +40,14 @@ export const SPLIT_METHOD_VALUES = [
   "ITEMIZED",
 ];
 
+/** One line of an itemized bill. Validated properly by normalizeItems(). */
+const splitItemSchema = z.object({
+  name: z.string(),
+  amount: z.union([z.string(), z.number()]),
+  quantity: z.union([z.string(), z.number()]).optional(),
+  assignedTo: z.array(z.string()).optional(),
+});
+
 export const sharedExpenseSchema = z
   .object({
     description: z.string().min(1, "Description is required").max(140),
@@ -53,8 +61,16 @@ export const sharedExpenseSchema = z
       .array(z.string())
       .min(1, "Select at least one participant"),
     splitMethod: z.enum(SPLIT_METHOD_VALUES),
-    // per-participant input, keyed by user id; meaning depends on splitMethod
-    splitValues: z.record(z.string(), z.union([z.string(), z.number()])).optional(),
+    // Per-participant input keyed by user id (EXACT, SHARES, PERCENTAGE...),
+    // or a list of line items for ITEMIZED. The two shapes are disjoint, so a
+    // union admits both; amounts stay loose here because normalizeItems and
+    // computeSplit do the real validation and produce better messages.
+    splitValues: z
+      .union([
+        z.object({ items: z.array(splitItemSchema) }),
+        z.record(z.string(), z.union([z.string(), z.number()])),
+      ])
+      .optional(),
     notes: z.string().max(500).optional(),
     // Optional: record the cash outflow against a personal account (M12).
     accountId: z.string().nullable().optional(),
@@ -66,6 +82,13 @@ export const sharedExpenseSchema = z
         code: "custom",
         message: "The payer must be one of the participants",
         path: ["paidById"],
+      });
+    }
+    if (data.splitMethod === "ITEMIZED" && !data.splitValues?.items?.length) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Add at least one item",
+        path: ["splitValues", "items"],
       });
     }
     if (new Set(data.participantIds).size !== data.participantIds.length) {
