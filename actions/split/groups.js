@@ -12,8 +12,11 @@ import {
   AccessError,
   ACCESS_CODES,
 } from "@/lib/split/auth";
-import { areFriendsFrom } from "@/lib/split/friends";
-import { canonicalPair, canRemoveMember } from "@/lib/split/access";
+import {
+  areFriendsFrom,
+  canonicalPair,
+  canRemoveMember,
+} from "@/lib/split/access";
 import {
   validateGroupInput,
   countOwners,

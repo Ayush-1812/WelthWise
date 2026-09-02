@@ -9,24 +9,33 @@ import { getFriends } from "@/actions/split/friends";
 import { getGroupSimplification } from "@/actions/split/balances";
 import { getGroupActivity } from "@/actions/split/activity";
 import { getGroupAnalytics } from "@/actions/split/analytics";
+import { getGroupInvites } from "@/actions/split/invites";
 
 import { GroupHeader } from "./_components/group-header";
 import { GroupMembers } from "./_components/group-members";
 import { SimplifyDebts } from "./_components/simplify-debts";
 import { ActivityFeed } from "./_components/activity-feed";
 import { GroupAnalytics } from "./_components/group-analytics";
+import { InviteLink } from "./_components/invite-link";
 
 export default async function GroupDetailPage({ params }) {
   const { id } = await params;
 
-  const [groupResult, friendsResult, simplifyResult, activityResult, analyticsResult] =
-    await Promise.all([
-      getGroup(id),
-      getFriends(),
-      getGroupSimplification(id),
-      getGroupActivity(id),
-      getGroupAnalytics(id),
-    ]);
+  const [
+    groupResult,
+    friendsResult,
+    simplifyResult,
+    activityResult,
+    analyticsResult,
+    invitesResult,
+  ] = await Promise.all([
+    getGroup(id),
+    getFriends(),
+    getGroupSimplification(id),
+    getGroupActivity(id),
+    getGroupAnalytics(id),
+    getGroupInvites(id),
+  ]);
 
   // getGroup returns an access failure for non-members too, which is what we
   // want: a group id in a URL must not confirm the group exists.
@@ -37,12 +46,19 @@ export default async function GroupDetailPage({ params }) {
   const simplification = simplifyResult.success ? simplifyResult.data : null;
   const activity = activityResult.success ? activityResult.data : null;
   const analytics = analyticsResult.success ? analyticsResult.data : null;
+  const invites = invitesResult.success ? invitesResult.data : [];
 
   return (
     <div className="space-y-6">
       <GroupHeader group={group} />
 
       <GroupMembers group={group} friends={friends} />
+
+      <InviteLink
+        groupId={group.id}
+        invites={invites}
+        canManage={group.myRole === "OWNER" || group.myRole === "ADMIN"}
+      />
 
       <SimplifyDebts data={simplification} />
 

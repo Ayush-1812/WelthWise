@@ -13,7 +13,7 @@ import { formatMoney } from "@/lib/format";
 import { DEFAULT_CURRENCY } from "@/lib/split/currency";
 import { getMyBalanceSummary } from "@/actions/split/balances";
 
-import { SPLIT_SECTIONS } from "../_components/split-nav";
+import { SPLIT_SECTIONS } from "../_components/split-sections";
 import { FriendAvatar } from "../friends/_components/friend-avatar";
 
 export default async function SplitOverviewPage() {

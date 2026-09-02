@@ -78,7 +78,7 @@ export function ExpenseForm({ context, initial = null }) {
   const [contextKey, setContextKey] = useState(initialKey);
   const [description, setDescription] = useState(initial?.description ?? "");
   const [currency, setCurrency] = useState(
-    initial?.currency || DEFAULT_CURRENCY
+    initial?.currency || context.defaults?.currency || DEFAULT_CURRENCY
   );
   const [amount, setAmount] = useState(
     initial ? String(initial.amount) : ""
@@ -88,7 +88,9 @@ export function ExpenseForm({ context, initial = null }) {
   );
   const [category, setCategory] = useState(initial?.category ?? "food");
   const [notes, setNotes] = useState(initial?.notes ?? "");
-  const [method, setMethod] = useState(initial?.splitMethod ?? "EQUAL");
+  const [method, setMethod] = useState(
+    initial?.splitMethod ?? context.defaults?.splitMethod ?? "EQUAL"
+  );
   const [values, setValues] = useState(initial?.splitValues ?? {});
   // Line items for an ITEMIZED split, kept separate from the per-person values.
   const [items, setItems] = useState(

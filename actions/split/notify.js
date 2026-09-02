@@ -99,7 +99,10 @@ export async function deliverEmails(payloads = []) {
   try {
     const users = await db.user.findMany({
       where: { id: { in: [...new Set(worthy.map((p) => p.userId))] } },
-      select: { id: true, email: true, name: true },
+      // emailNotifications is the user's own opt-out (M19 settings). It gates
+      // delivery only: the in-app notification row is always written, so
+      // turning email off never loses the event itself.
+      select: { id: true, email: true, name: true, emailNotifications: true },
     });
     const byId = new Map(users.map((u) => [u.id, u]));
 
@@ -110,6 +113,8 @@ export async function deliverEmails(payloads = []) {
           failed++;
           return;
         }
+        // Opted out: not a failure, just nothing to send.
+        if (user.emailNotifications === false) return;
 
         try {
           const result = await sendEmail({

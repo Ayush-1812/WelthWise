@@ -110,6 +110,10 @@ export async function getExpenseFormContext() {
         groups,
         friends,
         accounts,
+        defaults: {
+          currency: me.preferredCurrency,
+          splitMethod: me.defaultSplitMethod,
+        },
       },
     };
   } catch (error) {

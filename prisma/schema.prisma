@@ -16,6 +16,11 @@ model User {
   imageUrl          String?
   /// Default currency for new shared expenses (M22).
   preferredCurrency String        @default("INR")
+  /// Split method preselected on the add-expense form (M19).
+  defaultSplitMethod SplitMethod  @default(EQUAL)
+  /// Whether email is sent for notification-worthy events. In-app
+  /// notifications are always recorded; this only gates delivery.
+  emailNotifications Boolean      @default(true)
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
   accounts          Account[]
@@ -38,6 +43,7 @@ model User {
   recurringSharedPaid    RecurringSharedExpense[] @relation("RecurringPayer")
   notifications          Notification[]           @relation("NotificationRecipient")
   notificationsTriggered Notification[]           @relation("NotificationActor")
+  groupInvitesCreated    GroupInvite[]            @relation("InviteCreator")
 
   @@map("users")
 }
@@ -225,6 +231,7 @@ model ExpenseGroup {
   settlements Settlement[]
   activity    SharedExpenseActivity[]
   recurring   RecurringSharedExpense[]
+  invites     GroupInvite[]
 
   @@index([createdById])
   @@index([isArchived])
@@ -232,6 +239,35 @@ model ExpenseGroup {
 }
 
 /// Membership is soft-ended via leftAt so historical splits stay explainable.
+/// A shareable link that lets someone join a group without being added by hand.
+///
+/// The token is the credential, so it is random, unique, and never derived from
+/// the group id - a guessable link would be an open door into a group's ledger.
+/// Validity is deliberately expressed as data (expiry, use cap, revocation)
+/// rather than deletion, so a link that stops working can still explain why.
+model GroupInvite {
+  id          String    @id @default(uuid())
+  groupId     String
+  /// The random secret that appears in the URL.
+  token       String    @unique
+  createdById String
+  /// Null means it never expires.
+  expiresAt   DateTime?
+  /// Null means unlimited joins.
+  maxUses     Int?
+  useCount    Int       @default(0)
+  /// Set when someone revokes the link; it then fails closed forever.
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  group     ExpenseGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  createdBy User         @relation("InviteCreator", fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([groupId])
+  @@index([token])
+  @@map("group_invites")
+}
+
 model GroupMember {
   id       String    @id @default(uuid())
   groupId  String
@@ -449,6 +485,8 @@ enum NotificationType {
   FRIEND_REQUEST
   FRIEND_ACCEPTED
   GROUP_ADDED
+  /// Someone joined by following an invite link, rather than being added.
+  GROUP_JOINED
   GROUP_REMOVED
   EXPENSE_ADDED
   EXPENSE_EDITED
