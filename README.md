@@ -1,6 +1,6 @@
 # 💰 WealthWise – AI-Powered Personal Finance Platform
 
-> A modern full-stack personal finance platform that helps users track income, expenses, budgets, and financial goals with AI-powered insights and real-time analytics.
+A modern full-stack personal finance platform that helps users track income, expenses, budgets, and financial goals with AI-powered insights and real-time analytics.
 
 🌐 **Live Demo:** https://welth-wise-nwr1-git-main-ayush-carpenters-projects.vercel.app/
 
