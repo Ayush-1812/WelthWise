@@ -165,7 +165,7 @@ npm run dev
 
 ---
 
-## 📈 Future Improvements
+##  Future Improvements
 
 - SplitWise-style shared expense tracking and settlement
 - Group expense management and debt simplification
