@@ -241,3 +241,7 @@ const styles = {
     borderTop: "1px solid #e5e7eb",
   },
 };
+
+// Consumed by the react-email preview server (`npm run email`). PREVIEW_DATA
+// was previously declared and never referenced.
+EmailTemplate.PreviewProps = PREVIEW_DATA.monthlyReport;

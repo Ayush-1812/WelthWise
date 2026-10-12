@@ -3,14 +3,14 @@
  * A retried, double-fired, or concurrent cron run must never double-charge.
  */
 import { PrismaClient } from "@prisma/client";
-import { toDecimal } from "./lib/money.js";
-import { computeSplit } from "./lib/split/engine.js";
+import { toDecimal } from "../../lib/money.js";
+import { computeSplit } from "../../lib/split/engine.js";
 import {
   duePeriods,
   nextRunAfter,
   advance,
-} from "./lib/split/recurring.js";
-import { computeNetBalances, balancesSumToZero } from "./lib/split/balances.js";
+} from "../../lib/split/recurring.js";
+import { computeNetBalances, balancesSumToZero } from "../../lib/split/balances.js";
 
 const db = new PrismaClient();
 const tag = `m17test-${Date.now()}`;

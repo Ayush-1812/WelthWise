@@ -2,20 +2,20 @@
  * M22 end-to-end: multi-currency provenance and the mixed-ledger guard.
  */
 import { PrismaClient } from "@prisma/client";
-import { toDecimal } from "./lib/money.js";
-import { computeSplit } from "./lib/split/engine.js";
+import { toDecimal } from "../../lib/money.js";
+import { computeSplit } from "../../lib/split/engine.js";
 import {
   computeNetBalances,
   computeNetBalancesByCurrency,
   balancesSumToZero,
-} from "./lib/split/balances.js";
+} from "../../lib/split/balances.js";
 import {
   buildConversion,
   verifyConversion,
   currenciesIn,
   isSingleCurrency,
   CurrencyError,
-} from "./lib/split/currency.js";
+} from "../../lib/split/currency.js";
 
 const db = new PrismaClient();
 const tag = `m22test-${Date.now()}`;

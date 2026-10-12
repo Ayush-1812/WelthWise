@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 import useFetch from "@/hooks/use-fetch";
@@ -35,7 +35,7 @@ export function CreateAccountDrawer({ children }) {
     handleSubmit,
     formState: { errors },
     setValue,
-    watch,
+    control,
     reset,
   } = useForm({
     resolver: zodResolver(accountSchema),
@@ -47,32 +47,28 @@ export function CreateAccountDrawer({ children }) {
     },
   });
 
-  const {
-    loading: createAccountLoading,
-    fn: createAccountFn,
-    error,
-    data: newAccount,
-  } = useFetch(createAccount);
+  const { loading: createAccountLoading, fn: createAccountFn } =
+    useFetch(createAccount);
 
   const onSubmit = async (data) => {
-    await createAccountFn(data);
+    const created = await createAccountFn(data);
+
+    // Handled here rather than in an effect watching the returned account.
+    // Closing the drawer from inside an effect sets state during commit and
+    // triggers a cascading render, and the effect would not fire again if a
+    // second create happened to return an identical object. useFetch returns
+    // the response precisely so a caller can react to one specific call.
+    //
+    // There is no error branch because useFetch already toasts on failure -
+    // the effect this replaces produced a second toast for every error.
+    if (!created) return;
+
+    toast.success("Account created successfully");
+    reset();
+    setOpen(false);
   };
-
-  useEffect(() => {
-    if (newAccount) {
-      toast.success("Account created successfully");
-      reset();
-      setOpen(false);
-    }
-  }, [newAccount, reset]);
-
-  useEffect(() => {
-    if (error) {
-      toast.error(error.message || "Failed to create account");
-    }
-  }, [error]);
-  const type = watch("type");
-  const isDefault = watch("isDefault");
+  const type = useWatch({ control, name: "type" });
+  const isDefault = useWatch({ control, name: "isDefault" });
 
 
   return (

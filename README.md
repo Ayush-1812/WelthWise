@@ -149,12 +149,17 @@ GEMINI_API_KEY=
 
 # Email (Resend) - needs a verified domain to send to other addresses
 RESEND_API_KEY=
+
+# Receipt storage (Supabase Storage) - uploads disable themselves if unset
+NEXT_PUBLIC_SUPABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
 ```
 
 ### Run migrations
 
 ```bash
-npx prisma migrate dev
+npx prisma migrate dev     # local development
+npx prisma migrate deploy  # a fresh or restored database
 ```
 
 ### Run locally
@@ -162,6 +167,40 @@ npx prisma migrate dev
 ```bash
 npm run dev
 ```
+
+### Run the tests
+
+```bash
+npm test        # 597 unit and property-based tests, no database required
+npx eslint .    # 0 errors, 0 warnings
+```
+
+The money and split logic in `lib/` is deliberately free of Prisma and React
+imports, so the whole suite runs in about a second against no infrastructure.
+
+---
+
+## 🛟 Troubleshooting
+
+### `FATAL: (ENOTFOUND) tenant or user not found`
+
+The Supabase project named in `DATABASE_URL` no longer exists. Free-tier
+projects pause after about a week of inactivity and are eventually deleted, and
+the pooler hostname keeps resolving afterwards, so this looks like a credentials
+problem rather than a missing database.
+
+Recovery:
+
+1. Create a new Supabase project.
+2. Put its pooled connection string in `DATABASE_URL` (port 6543, with
+   `?pgbouncer=true`) and its direct one in `DIRECT_URL` (port 5432).
+3. `npx prisma migrate deploy` to replay all nine migrations.
+4. Create the private `receipts` bucket, then set `NEXT_PUBLIC_SUPABASE_URL`
+   and `SUPABASE_SERVICE_ROLE_KEY`.
+
+The app will still boot and serve the landing page without a database, because
+the header treats user provisioning as best-effort. Signing in is what surfaces
+the failure.
 
 ---
 

@@ -3,12 +3,12 @@
  * never notifies the actor, and email failure never affects the in-app row.
  */
 import { PrismaClient } from "@prisma/client";
-import { computeSplit } from "./lib/split/engine.js";
+import { computeSplit } from "../../lib/split/engine.js";
 import {
   buildNotification,
   recipientsFor,
   shouldEmail,
-} from "./lib/split/notifications.js";
+} from "../../lib/split/notifications.js";
 
 const db = new PrismaClient();
 const tag = `m16test-${Date.now()}`;

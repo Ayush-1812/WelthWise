@@ -146,7 +146,7 @@ export function ExpenseFilters({ options, value, onChange, onClear, busy }) {
 
           <div className="grid grid-cols-2 gap-2">
             <label className="space-y-1">
-              <span className="text-xs font-medium text-muted-foreground">Min ₹</span>
+              <span className="text-xs font-medium text-muted-foreground">Min amount</span>
               <Input
                 type="number"
                 min="0"
@@ -158,7 +158,7 @@ export function ExpenseFilters({ options, value, onChange, onClear, busy }) {
               />
             </label>
             <label className="space-y-1">
-              <span className="text-xs font-medium text-muted-foreground">Max ₹</span>
+              <span className="text-xs font-medium text-muted-foreground">Max amount</span>
               <Input
                 type="number"
                 min="0"

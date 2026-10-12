@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CalendarIcon, Loader2 } from "lucide-react";
 import { format } from "date-fns";
@@ -30,7 +30,7 @@ import { cn } from "@/lib/utils";
 import { formatMoney } from "@/lib/format";
 import { createTransaction, updateTransaction } from "@/actions/transaction";
 import { transactionSchema } from "@/app/lib/schema";
-import { ReceiptScanner } from "./recipt-scanner";
+import { ReceiptScanner } from "./receipt-scanner";
 
 export function AddTransactionForm({
   accounts,
@@ -47,7 +47,7 @@ export function AddTransactionForm({
     register,
     handleSubmit,
     formState: { errors },
-    watch,
+    control,
     setValue,
     getValues,
     reset,
@@ -127,9 +127,9 @@ export function AddTransactionForm({
     }
   }, [transactionResult, transactionLoading, editMode,reset, router]);
 
-  const type = watch("type");
-  const isRecurring = watch("isRecurring");
-  const date = watch("date");
+  const type = useWatch({ control, name: "type" });
+  const isRecurring = useWatch({ control, name: "isRecurring" });
+  const date = useWatch({ control, name: "date" });
 
 
   const filteredCategories = categories.filter(

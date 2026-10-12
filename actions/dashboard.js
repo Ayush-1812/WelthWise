@@ -2,6 +2,7 @@
 
 import aj from "@/lib/arcjet";
 import { db } from "@/lib/prisma";
+import { ensureAppUser } from "@/lib/appUser";
 import { request } from "@arcjet/next";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
@@ -22,13 +23,7 @@ export async function getUserAccounts() {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
-  const user = await db.user.findUnique({
-    where: { clerkUserId: userId },
-  });
-
-  if (!user) {
-    throw new Error("User not found");
-  }
+  const user = await ensureAppUser();
 
   try {
     const accounts = await db.account.findMany({
@@ -86,13 +81,7 @@ export async function createAccount(data) {
       throw new Error("Request blocked");
     }
 
-    const user = await db.user.findUnique({
-      where: { clerkUserId: userId },
-    });
-
-    if (!user) {
-      throw new Error("User not found");
-    }
+    const user = await ensureAppUser();
 
     // Convert balance to float before saving
     const balanceFloat = parseFloat(data.balance);
@@ -142,13 +131,7 @@ export async function getDashboardData() {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
-  const user = await db.user.findUnique({
-    where: { clerkUserId: userId },
-  });
-
-  if (!user) {
-    throw new Error("User not found");
-  }
+  const user = await ensureAppUser();
 
   // Spending analytics only. Transfers (money lent to others, settlement
   // movements) shift the account balance but are not consumption, so they

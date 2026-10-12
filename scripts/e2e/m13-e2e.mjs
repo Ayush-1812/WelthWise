@@ -2,9 +2,9 @@
  * M13 end-to-end: debt simplification against a real group ledger.
  */
 import { PrismaClient } from "@prisma/client";
-import { computeSplit } from "./lib/split/engine.js";
-import { computeNetBalances, computePairwiseBalances } from "./lib/split/balances.js";
-import { buildSettlementPlan, preservesBalances } from "./lib/split/simplify.js";
+import { computeSplit } from "../../lib/split/engine.js";
+import { computeNetBalances, computePairwiseBalances } from "../../lib/split/balances.js";
+import { buildSettlementPlan, preservesBalances } from "../../lib/split/simplify.js";
 
 const db = new PrismaClient();
 const tag = `m13test-${Date.now()}`;

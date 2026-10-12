@@ -2,10 +2,10 @@
  * M21 end-to-end: itemized splits persist, reconcile, and survive an edit.
  */
 import { PrismaClient } from "@prisma/client";
-import { toDecimal, sum } from "./lib/money.js";
-import { computeSplit } from "./lib/split/engine.js";
-import { computeNetBalances, balancesSumToZero } from "./lib/split/balances.js";
-import { normalizeItems, itemsForUser } from "./lib/split/itemized.js";
+import { toDecimal, sum } from "../../lib/money.js";
+import { computeSplit } from "../../lib/split/engine.js";
+import { computeNetBalances, balancesSumToZero } from "../../lib/split/balances.js";
+import { normalizeItems, itemsForUser } from "../../lib/split/itemized.js";
 
 const db = new PrismaClient();
 const tag = `m21test-${Date.now()}`;

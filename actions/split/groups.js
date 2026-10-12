@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { db } from "@/lib/prisma";
+import { assertWithinRateLimit } from "@/lib/ratelimit";
 import { serializeMoney, Decimal } from "@/lib/money";
 import {
   getCurrentAppUser,
@@ -38,6 +39,12 @@ function fail(error) {
   // swallowing it into a failed result and logging a misleading error.
   if (error?.digest === "DYNAMIC_SERVER_USAGE") throw error;
   if (error instanceof AccessError) return { success: false, error: error.message };
+  // A throttled caller is an expected outcome, not a defect. The limiter has
+  // already logged a structured RATE_LIMIT_EXCEEDED line, so returning here
+  // keeps a stack trace out of the log.
+  if (error?.code === "RATE_LIMITED") {
+    return { success: false, error: error.message };
+  }
   console.error("[split/groups]", error);
   return { success: false, error: error.message ?? "Something went wrong" };
 }
@@ -167,6 +174,7 @@ export async function getGroup(groupId) {
 export async function createGroup(input) {
   try {
     const me = await getCurrentAppUser();
+    await assertWithinRateLimit("write", me.id);
     const { name, description, icon } = validateGroupInput(input);
 
     const memberIds = [...new Set(input?.memberIds ?? [])].filter(
@@ -273,6 +281,7 @@ export async function updateGroup(groupId, input) {
 export async function addGroupMembers(groupId, userIds) {
   try {
     const me = await getCurrentAppUser();
+    await assertWithinRateLimit("write", me.id);
     await assertCanManageGroup(groupId, me.id);
 
     const wanted = [...new Set(userIds ?? [])];

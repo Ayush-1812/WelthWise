@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { db } from "@/lib/prisma";
+import { assertWithinRateLimit } from "@/lib/ratelimit";
 import { Decimal } from "@/lib/money";
 import { canonicalPair } from "@/lib/split/access";
 import {
@@ -53,6 +54,12 @@ function fail(error) {
     error instanceof SettlementError ||
     error instanceof CurrencyError
   ) {
+    return { success: false, error: error.message };
+  }
+  // A throttled caller is an expected outcome, not a defect. The limiter has
+  // already logged a structured RATE_LIMIT_EXCEEDED line, so returning here
+  // keeps a stack trace out of the log.
+  if (error?.code === "RATE_LIMITED") {
     return { success: false, error: error.message };
   }
   console.error("[split/settlements]", error);
@@ -127,6 +134,7 @@ export async function createSettlement({
 }) {
   try {
     const me = await getCurrentAppUser();
+    await assertWithinRateLimit("write", me.id);
 
     if (!otherUserId || otherUserId === me.id) {
       throw new AccessError(

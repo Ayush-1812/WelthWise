@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { db } from "@/lib/prisma";
+import { assertWithinRateLimit } from "@/lib/ratelimit";
 import { getCurrentAppUser, AccessError, ACCESS_CODES } from "@/lib/split/auth";
 import {
   FRIEND_STATUS,
@@ -35,6 +36,12 @@ function fail(error) {
   if (error?.digest === "DYNAMIC_SERVER_USAGE") throw error;
   // AccessError messages are already user-facing; anything else is unexpected.
   if (error instanceof AccessError) return { success: false, error: error.message };
+  // A throttled caller is an expected outcome, not a defect. The limiter has
+  // already logged a structured RATE_LIMIT_EXCEEDED line, so returning here
+  // keeps a stack trace out of the log.
+  if (error?.code === "RATE_LIMITED") {
+    return { success: false, error: error.message };
+  }
   console.error("[split/friends]", error);
   return { success: false, error: error.message ?? "Something went wrong" };
 }
@@ -49,6 +56,7 @@ function fail(error) {
 export async function searchUsers(rawQuery) {
   try {
     const me = await getCurrentAppUser();
+    await assertWithinRateLimit("write", me.id);
     const query = String(rawQuery ?? "").trim().toLowerCase();
 
     if (!query || !query.includes("@")) {
@@ -79,7 +87,7 @@ export async function searchUsers(rawQuery) {
   }
 }
 
-/** Accepted friends, with a net balance placeholder until M8. */
+/** Accepted friends, each with a net balance derived from the ledger. */
 export async function getFriends() {
   try {
     const me = await getCurrentAppUser();
@@ -147,6 +155,7 @@ export async function getPendingRequests() {
 export async function sendFriendRequest(targetUserId) {
   try {
     const me = await getCurrentAppUser();
+    await assertWithinRateLimit("write", me.id);
 
     if (!targetUserId || targetUserId === me.id) {
       throw new AccessError(

@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 
 import { db } from "@/lib/prisma";
+import { assertWithinRateLimit } from "@/lib/ratelimit";
 import {
   getCurrentAppUser,
   assertGroupMember,
@@ -34,6 +35,12 @@ function fail(error) {
   if (error instanceof AccessError || error instanceof InviteError) {
     return { success: false, error: error.message };
   }
+  // A throttled caller is an expected outcome, not a defect. The limiter has
+  // already logged a structured RATE_LIMIT_EXCEEDED line, so returning here
+  // keeps a stack trace out of the log.
+  if (error?.code === "RATE_LIMITED") {
+    return { success: false, error: error.message };
+  }
   console.error("[split/invites]", error);
   return { success: false, error: error.message ?? "Something went wrong" };
 }
@@ -59,6 +66,7 @@ export async function createGroupInvite(
 ) {
   try {
     const me = await getCurrentAppUser();
+    await assertWithinRateLimit("invite", me.id);
     await assertCanManageGroup(groupId, me.id);
 
     const cap = maxUses === null || maxUses === "" ? null : Number(maxUses);
@@ -231,6 +239,7 @@ export async function previewGroupInvite(token) {
 export async function joinGroupViaInvite(token) {
   try {
     const me = await getCurrentAppUser();
+    await assertWithinRateLimit("invite", me.id);
 
     if (!isValidTokenFormat(token)) {
       throw new InviteError(inviteStatusMessage(INVITE_STATUS.NOT_FOUND));

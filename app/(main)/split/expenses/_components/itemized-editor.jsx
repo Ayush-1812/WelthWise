@@ -1,12 +1,24 @@
 "use client";
 
-import { AlertCircle, CheckCircle2, Plus, Trash2, Users } from "lucide-react";
+import { useRef, useState } from "react";
+import {
+  AlertCircle,
+  Camera,
+  CheckCircle2,
+  Loader2,
+  Plus,
+  Trash2,
+  Users,
+} from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { formatMoney } from "@/lib/format";
 import { checkItemsTotal, emptyItem } from "@/lib/split/itemized";
+import { RECEIPT_ACCEPT_ATTR } from "@/lib/split/receipts";
+import { scanReceiptItems } from "@/actions/split/receipts";
 
 /**
  * Line-item editor for an ITEMIZED split.
@@ -25,6 +37,52 @@ export function ItemizedEditor({
 }) {
   const rows = items ?? [];
   const participants = candidates.filter((c) => participantIds.includes(c.id));
+
+  const fileInputRef = useRef(null);
+  const [scanning, setScanning] = useState(false);
+
+  /**
+   * Scan a receipt into draft rows.
+   *
+   * Scanned items are APPENDED to whatever the user has already typed, and only
+   * the untouched starter row is dropped. Replacing the list outright would
+   * throw away manual rows the scanner was never going to find - the tip line
+   * someone added, or a dish the OCR misread and the user already fixed.
+   *
+   * Nothing is auto-assigned: draftItemsFromScan() returns every item with an
+   * empty assignedTo, so the user still decides who shared what.
+   */
+  const handleScan = async (file) => {
+    setScanning(true);
+    try {
+      const result = await scanReceiptItems(file);
+
+      if (!result?.success) {
+        toast.error(result?.error ?? "Could not read that receipt");
+        return;
+      }
+
+      const { items: scanned, scannedTotal } = result.data;
+      const typed = rows.filter(
+        (r) => String(r.name ?? "").trim() || String(r.amount ?? "").trim()
+      );
+
+      onChange([...typed, ...scanned]);
+
+      toast.success(
+        `Added ${scanned.length} item${scanned.length === 1 ? "" : "s"}` +
+          (scannedTotal
+            ? ` - the receipt totals ${formatMoney(scannedTotal, currency)}.`
+            : ". Tap who shared each one.")
+      );
+    } catch (error) {
+      toast.error(error?.message ?? "Could not read that receipt");
+    } finally {
+      setScanning(false);
+      // Clear the input so picking the same file twice still fires onChange.
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   const update = (index, patch) =>
     onChange(rows.map((row, i) => (i === index ? { ...row, ...patch } : row)));
@@ -49,6 +107,38 @@ export function ItemizedEditor({
         Add each item and tap who shared it. Everyone pays an equal part of the
         items they are on.
       </p>
+
+      <input
+        type="file"
+        ref={fileInputRef}
+        className="hidden"
+        accept={RECEIPT_ACCEPT_ATTR}
+        capture="environment"
+        onChange={(e) => {
+          const picked = e.target.files?.[0];
+          if (picked) handleScan(picked);
+        }}
+      />
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="w-full"
+        disabled={scanning}
+        onClick={() => fileInputRef.current?.click()}
+      >
+        {scanning ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Reading receipt...
+          </>
+        ) : (
+          <>
+            <Camera className="mr-2 h-4 w-4" />
+            Scan receipt for items
+          </>
+        )}
+      </Button>
 
       <ul className="space-y-2">
         {rows.map((row, index) => (

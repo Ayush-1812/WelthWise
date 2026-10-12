@@ -3,12 +3,12 @@
  * scoping can never be widened by a filter.
  */
 import { PrismaClient } from "@prisma/client";
-import { computeSplit } from "./lib/split/engine.js";
+import { computeSplit } from "../../lib/split/engine.js";
 import {
   normalizeFilters,
   buildExpenseWhere,
   EXPENSE_ORDER,
-} from "./lib/split/filters.js";
+} from "../../lib/split/filters.js";
 
 const db = new PrismaClient();
 const tag = `m18test-${Date.now()}`;

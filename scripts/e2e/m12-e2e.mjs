@@ -3,12 +3,12 @@
  * Verifies the exact scenario from task.md / spec #14 against the live DB.
  */
 import { PrismaClient } from "@prisma/client";
-import { toDecimal } from "./lib/money.js";
-import { computeSplit } from "./lib/split/engine.js";
+import { toDecimal } from "../../lib/money.js";
+import { computeSplit } from "../../lib/split/engine.js";
 import {
   personalEntriesForExpense,
   personalEntryForSettlement,
-} from "./lib/split/personal.js";
+} from "../../lib/split/personal.js";
 
 const db = new PrismaClient();
 const tag = `m12test-${Date.now()}`;

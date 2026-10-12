@@ -2,10 +2,10 @@
  * M19 end-to-end: the dashboard summary is correct, cheap, and degrades safely.
  */
 import { PrismaClient } from "@prisma/client";
-import { toDecimal } from "./lib/money.js";
-import { computeSplit } from "./lib/split/engine.js";
-import { pairwiseForUser, summarizeByCounterparty } from "./lib/split/balances.js";
-import { describeSchedule } from "./lib/split/recurring.js";
+import { toDecimal } from "../../lib/money.js";
+import { computeSplit } from "../../lib/split/engine.js";
+import { pairwiseForUser, summarizeByCounterparty } from "../../lib/split/balances.js";
+import { describeSchedule } from "../../lib/split/recurring.js";
 
 const db = new PrismaClient();
 const tag = `m19test-${Date.now()}`;

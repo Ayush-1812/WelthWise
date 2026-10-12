@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { db } from "@/lib/prisma";
+import { assertWithinRateLimit } from "@/lib/ratelimit";
 import { serializeMoney, toDecimal, round, Decimal } from "@/lib/money";
 import {
   getCurrentAppUser,
@@ -42,6 +43,12 @@ function fail(error) {
     error instanceof FilterError ||
     error instanceof ItemizedError
   ) {
+    return { success: false, error: error.message };
+  }
+  // A throttled caller is an expected outcome, not a defect. The limiter has
+  // already logged a structured RATE_LIMIT_EXCEEDED line, so returning here
+  // keeps a stack trace out of the log.
+  if (error?.code === "RATE_LIMITED") {
     return { success: false, error: error.message };
   }
   console.error("[split/expenses]", error);
@@ -131,6 +138,7 @@ export async function getExpenseFormContext() {
 export async function createSharedExpense(input) {
   try {
     const me = await getCurrentAppUser();
+    await assertWithinRateLimit("write", me.id);
 
     const parsed = sharedExpenseSchema.safeParse({
       ...input,
@@ -532,6 +540,7 @@ export async function getSharedExpense(expenseId) {
 export async function updateSharedExpense(expenseId, input) {
   try {
     const me = await getCurrentAppUser();
+    await assertWithinRateLimit("write", me.id);
 
     // Authorization: payer, creator, or group admin. Throws otherwise.
     const existing = await assertCanEditExpense(expenseId, me.id);
@@ -745,6 +754,7 @@ export async function updateSharedExpense(expenseId, input) {
 export async function deleteSharedExpense(expenseId, { confirm = false } = {}) {
   try {
     const me = await getCurrentAppUser();
+    await assertWithinRateLimit("write", me.id);
     const existing = await assertCanEditExpense(expenseId, me.id);
 
     const affectedIds = [

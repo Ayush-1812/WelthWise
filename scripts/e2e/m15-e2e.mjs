@@ -3,8 +3,8 @@
  * and each row renders as a sensible sentence.
  */
 import { PrismaClient } from "@prisma/client";
-import { computeSplit } from "./lib/split/engine.js";
-import { nameResolver, describeActivity } from "./lib/split/activity.js";
+import { computeSplit } from "../../lib/split/engine.js";
+import { nameResolver, describeActivity } from "../../lib/split/activity.js";
 
 const db = new PrismaClient();
 const tag = `m15test-${Date.now()}`;

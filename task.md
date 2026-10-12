@@ -596,28 +596,37 @@ storage dependency is installed.
 
 ---
 
-## M21 · Itemized split ✅ DONE (OCR half still blocked)
+## M21 · Itemized split ✅ DONE
 
-- [ ] Reuse `scanReceipt()` from `actions/transaction.js`
+- [x] Receipt OCR into draft line items
 - [x] Extract line items → assign each to members → derive shares
 - [x] `ExpenseItem` rows; Σ items === expense total
 - [x] Manual correction UI — OCR will be wrong sometimes
 
-**Blocked until** the Gemini `403 denied access` is resolved. Build the manual
-itemized path first so the feature works without OCR.
+OCR is `scanReceiptItems()` in `actions/split/receipts.js`, surfaced as
+"Scan receipt for items" in the itemized editor. It deliberately does NOT reuse
+`scanReceipt()` from `actions/transaction.js`: that one extracts a single total
+for a personal transaction, while an itemized split needs every line.
+
+Scanned rows are appended to anything already typed, arrive unassigned, and
+still have to clear `checkItemsTotal()` before the expense saves - the scanner
+drafts, the human decides. **Not yet verified against a live Gemini key.**
 
 ---
 
-## M22 · Multi-currency ✅ CORE DONE (UI pending)
-
-There is **no** currency support today. Amounts are `Decimal` with a hardcoded `$`.
+## M22 · Multi-currency ✅ DONE
 
 - [x] `currency` on `SharedExpense` and `Settlement` (default from user profile)
 - [x] Store `originalAmount`, `originalCurrency`, `exchangeRate`, `convertedAmount`
 - [x] **Never overwrite original values** — store the rate used, at the time used
 - [x] Pick and integrate a rate source; cache daily
 - [x] Balances per currency; do not silently sum across currencies
-- [ ] Replace hardcoded `$` app-wide via `formatMoney` from M0
+- [x] Replace hardcoded symbols app-wide via `formatMoney` from M0
+
+The last two were in the split editor, where the EXACT and CUSTOM inputs were
+labelled `₹` whatever the expense currency was, and in the expense filters,
+where a single symbol was wrong by definition because the list can mix
+currencies - those now read "Min amount" / "Max amount".
 
 ---
 
@@ -641,13 +650,16 @@ There is **no** currency support today. Amounts are `Decimal` with a hardcoded `
 
 ## Definition of done for the whole feature
 
-- [ ] Group balances always sum to zero, verified by an automated invariant test
-- [ ] No money value passes through a JS float anywhere in the feature
-- [ ] Every balance shown traces to specific ledger rows
-- [ ] Personal spending analytics reflect the user's **share**, never the amount paid
-- [ ] Settlements never appear as income or expense
-- [ ] Editing recalculates; deleting reverses; partial settlement leaves the remainder
-- [ ] Every group action is authorization-checked server-side
-- [ ] `npx next build` exits 0 with no new ESLint errors
-- [ ] The module is visually indistinguishable from the rest of WealthWise
+- [x] Group balances always sum to zero, verified by an automated invariant test
+      `balancesSumToZero()`, asserted across `balances.test.js` and the
+      500-random-ledger property test in `simplify.test.js`
+- [x] No money value passes through a JS float anywhere in the feature
+- [x] Every balance shown traces to specific ledger rows (`contributionsBetween`)
+- [x] Personal spending analytics reflect the user's **share**, never the amount paid
+- [x] Settlements never appear as income or expense
+- [x] Editing recalculates; deleting reverses; partial settlement leaves the remainder
+- [x] Every group action is authorization-checked server-side (`lib/split/auth.js`)
+- [x] `npx next build` exits 0 with no new ESLint errors
+      597 tests pass; `npx eslint .` reports 0 errors and 0 warnings
+- [x] The module is visually indistinguishable from the rest of WealthWise
   

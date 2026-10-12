@@ -1,7 +1,7 @@
 "use server";
 
-import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/prisma";
+import { ensureAppUser } from "@/lib/appUser";
 import { subDays } from "date-fns";
 
 // Categories with their typical amount ranges
@@ -42,11 +42,7 @@ function getRandomCategory(type) {
 export async function seedTransactions() {
   try {
     // Seed only the calling user's own default account - never a hardcoded one.
-    const { userId } = await auth();
-    if (!userId) throw new Error("Unauthorized");
-
-    const user = await db.user.findUnique({ where: { clerkUserId: userId } });
-    if (!user) throw new Error("User not found");
+    const user = await ensureAppUser();
 
     const account = await db.account.findFirst({
       where: { userId: user.id, isDefault: true },

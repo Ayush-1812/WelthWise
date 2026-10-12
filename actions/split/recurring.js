@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { db } from "@/lib/prisma";
+import { assertWithinRateLimit } from "@/lib/ratelimit";
 import { toDecimal, round, serializeMoney } from "@/lib/money";
 import {
   getCurrentAppUser,
@@ -32,6 +33,12 @@ function fail(error) {
   ) {
     return { success: false, error: error.message };
   }
+  // A throttled caller is an expected outcome, not a defect. The limiter has
+  // already logged a structured RATE_LIMIT_EXCEEDED line, so returning here
+  // keeps a stack trace out of the log.
+  if (error?.code === "RATE_LIMITED") {
+    return { success: false, error: error.message };
+  }
   console.error("[split/recurring]", error);
   return { success: false, error: error.message ?? "Something went wrong" };
 }
@@ -46,6 +53,7 @@ function fail(error) {
 export async function createRecurringExpense(input) {
   try {
     const me = await getCurrentAppUser();
+    await assertWithinRateLimit("write", me.id);
 
     const { description, interval, every, nextRunDate, endDate } =
       validateRecurringInput(input);

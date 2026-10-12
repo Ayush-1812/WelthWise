@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { formatMoney } from "@/lib/format";
 import { computeSplit } from "@/lib/split/engine";
+import { currencyMeta, isSupportedCurrency } from "@/lib/split/currency";
 
 import { ItemizedEditor } from "./itemized-editor";
 
@@ -31,12 +32,31 @@ const METHOD_HELP = {
 
 const NEEDS_INPUT = new Set(["EXACT", "PERCENTAGE", "SHARES", "CUSTOM"]);
 
-const INPUT_SUFFIX = {
-  EXACT: "₹",
-  PERCENTAGE: "%",
-  SHARES: "shares",
-  CUSTOM: "± ₹",
-};
+/**
+ * Suffix shown inside each per-person input.
+ *
+ * The money-valued methods take their symbol from the expense's own currency.
+ * These were hardcoded to ₹, so a USD expense asked the user for dollars while
+ * labelling the box with rupees - the last gap left by M22.
+ */
+function inputSuffix(method, currency) {
+  const symbol = isSupportedCurrency(currency)
+    ? currencyMeta(currency).symbol
+    : "";
+
+  switch (method) {
+    case "PERCENTAGE":
+      return "%";
+    case "SHARES":
+      return "shares";
+    case "EXACT":
+      return symbol;
+    case "CUSTOM":
+      return `± ${symbol}`;
+    default:
+      return "";
+  }
+}
 
 export function SplitEditor({
   candidates,
@@ -150,7 +170,7 @@ export function SplitEditor({
                       className="h-8 w-24 text-right"
                     />
                     <span className="w-12 text-xs text-muted-foreground">
-                      {INPUT_SUFFIX[method]}
+                      {inputSuffix(method, currency)}
                     </span>
                   </div>
                 )}
