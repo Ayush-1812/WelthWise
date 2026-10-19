@@ -27,12 +27,20 @@ export async function sendEmail({ to, subject, react }) {
   const resend = new Resend(process.env.RESEND_API_KEY || "");
 
   try {
-    const data = await resend.emails.send({
+    const { data, error } = await resend.emails.send({
       from: FROM,
       to,
       subject,
       react,
     });
+
+    // The Resend SDK reports API failures in its return value instead of
+    // throwing, so a rejected send - unverified sender, bad key, rate limit -
+    // used to come back from here as { success: true }.
+    if (error) {
+      console.error("Failed to send email:", error.name ?? "", error.message ?? error);
+      return { success: false, error };
+    }
 
     return { success: true, data };
   } catch (error) {
