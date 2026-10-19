@@ -118,10 +118,21 @@ export default function EmailTemplate({
               </Section>
             )}
 
-            {/* AI Insights */}
+            {/* AI Insights - or, when Gemini was unavailable, general tips
+                labelled as such (insightsGenerated === false). */}
             {data?.insights && (
               <Section style={styles.section}>
-                <Heading style={styles.heading}>Welth Insights</Heading>
+                <Heading style={styles.heading}>
+                  {data.insightsGenerated === false
+                    ? "Tips for next month"
+                    : "Welth Insights"}
+                </Heading>
+                {data.insightsGenerated === false && (
+                  <Text style={styles.text}>
+                    Personalised insights were unavailable this month, so here
+                    are a few general suggestions.
+                  </Text>
+                )}
                 {data.insights.map((insight, index) => (
                   <Text key={index} style={styles.text}>
                     • {insight}
