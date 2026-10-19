@@ -179,6 +179,14 @@ npx eslint .    # 0 errors, 0 warnings
 The money and split logic in `lib/` is deliberately free of Prisma and React
 imports, so the whole suite runs in about a second against no infrastructure.
 
+The end-to-end scripts in `scripts/e2e/` are different: they create and delete
+real rows in whatever database `DATABASE_URL` points at. They refuse to run
+unless you opt in, so point `DATABASE_URL` at a disposable database first:
+
+```bash
+E2E_ALLOW_WRITES=1 node scripts/e2e/m13-e2e.mjs
+```
+
 ---
 
 ## 🛟 Troubleshooting

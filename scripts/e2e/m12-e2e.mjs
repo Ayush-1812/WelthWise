@@ -2,6 +2,7 @@
  * M12 end-to-end: the personal-finance separation.
  * Verifies the exact scenario from task.md / spec #14 against the live DB.
  */
+import "./guard.mjs";
 import { PrismaClient } from "@prisma/client";
 import { toDecimal } from "../../lib/money.js";
 import { computeSplit } from "../../lib/split/engine.js";

@@ -1,6 +1,7 @@
 /**
  * M19 end-to-end: the dashboard summary is correct, cheap, and degrades safely.
  */
+import "./guard.mjs";
 import { PrismaClient } from "@prisma/client";
 import { toDecimal } from "../../lib/money.js";
 import { computeSplit } from "../../lib/split/engine.js";

@@ -2,6 +2,7 @@
  * M17 end-to-end: recurring generation must be idempotent.
  * A retried, double-fired, or concurrent cron run must never double-charge.
  */
+import "./guard.mjs";
 import { PrismaClient } from "@prisma/client";
 import { toDecimal } from "../../lib/money.js";
 import { computeSplit } from "../../lib/split/engine.js";

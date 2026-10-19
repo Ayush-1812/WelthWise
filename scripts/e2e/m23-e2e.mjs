@@ -2,6 +2,7 @@
  * M23 end-to-end: shared analytics stay separate from personal finance, and
  * settlements are never counted as spending.
  */
+import "./guard.mjs";
 import { PrismaClient } from "@prisma/client";
 import { toDecimal, sum } from "../../lib/money.js";
 import { computeSplit } from "../../lib/split/engine.js";

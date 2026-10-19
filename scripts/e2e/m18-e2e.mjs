@@ -2,6 +2,7 @@
  * M18 end-to-end: filtering and pagination happen in the database, and access
  * scoping can never be widened by a filter.
  */
+import "./guard.mjs";
 import { PrismaClient } from "@prisma/client";
 import { computeSplit } from "../../lib/split/engine.js";
 import {

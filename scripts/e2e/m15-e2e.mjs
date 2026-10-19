@@ -2,6 +2,7 @@
  * M15 end-to-end: every ledger-mutating action writes exactly one activity row,
  * and each row renders as a sensible sentence.
  */
+import "./guard.mjs";
 import { PrismaClient } from "@prisma/client";
 import { computeSplit } from "../../lib/split/engine.js";
 import { nameResolver, describeActivity } from "../../lib/split/activity.js";

@@ -1,3 +1,4 @@
+import "./guard.mjs";
 import { PrismaClient } from "@prisma/client";
 import { computeSplit, validateSplit } from "../../lib/split/engine.js";
 import { computeNetBalances, balancesSumToZero } from "../../lib/split/balances.js";

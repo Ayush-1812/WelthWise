@@ -1,6 +1,7 @@
 /**
  * M21 end-to-end: itemized splits persist, reconcile, and survive an edit.
  */
+import "./guard.mjs";
 import { PrismaClient } from "@prisma/client";
 import { toDecimal, sum } from "../../lib/money.js";
 import { computeSplit } from "../../lib/split/engine.js";

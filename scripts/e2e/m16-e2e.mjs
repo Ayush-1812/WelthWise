@@ -2,6 +2,7 @@
  * M16 end-to-end: each trigger creates exactly one notification per recipient,
  * never notifies the actor, and email failure never affects the in-app row.
  */
+import "./guard.mjs";
 import { PrismaClient } from "@prisma/client";
 import { computeSplit } from "../../lib/split/engine.js";
 import {

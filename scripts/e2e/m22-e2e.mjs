@@ -1,6 +1,7 @@
 /**
  * M22 end-to-end: multi-currency provenance and the mixed-ledger guard.
  */
+import "./guard.mjs";
 import { PrismaClient } from "@prisma/client";
 import { toDecimal } from "../../lib/money.js";
 import { computeSplit } from "../../lib/split/engine.js";

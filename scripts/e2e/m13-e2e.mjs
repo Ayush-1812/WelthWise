@@ -1,6 +1,7 @@
 /**
  * M13 end-to-end: debt simplification against a real group ledger.
  */
+import "./guard.mjs";
 import { PrismaClient } from "@prisma/client";
 import { computeSplit } from "../../lib/split/engine.js";
 import { computeNetBalances, computePairwiseBalances } from "../../lib/split/balances.js";
