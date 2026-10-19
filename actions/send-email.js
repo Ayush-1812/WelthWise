@@ -12,12 +12,23 @@ import "server-only";
 
 import { Resend } from "resend";
 
+/**
+ * Sender address, from RESEND_FROM.
+ *
+ * The fallback is Resend's shared test sender, which only delivers to the
+ * address that owns the Resend account - every budget alert, monthly report
+ * and notification to anyone else is rejected. Once a domain is verified in
+ * Resend, set RESEND_FROM (e.g. "WealthWise <alerts@yourdomain.com>") and no
+ * code needs to change.
+ */
+const FROM = process.env.RESEND_FROM?.trim() || "Finance App <onboarding@resend.dev>";
+
 export async function sendEmail({ to, subject, react }) {
   const resend = new Resend(process.env.RESEND_API_KEY || "");
 
   try {
     const data = await resend.emails.send({
-      from: "Finance App <onboarding@resend.dev>",
+      from: FROM,
       to,
       subject,
       react,

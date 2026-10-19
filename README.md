@@ -149,6 +149,7 @@ GEMINI_API_KEY=
 
 # Email (Resend) - needs a verified domain to send to other addresses
 RESEND_API_KEY=
+RESEND_FROM=           # e.g. WealthWise <alerts@yourdomain.com>; unset = test sender
 
 # Receipt storage (Supabase Storage) - uploads disable themselves if unset
 NEXT_PUBLIC_SUPABASE_URL=
