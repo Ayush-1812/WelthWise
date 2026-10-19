@@ -49,6 +49,19 @@ export async function getReceiptStorageStatus() {
   return { success: true, data: { configured: isStorageConfigured() } };
 }
 
+/** What to tell the user when the Gemini request itself fails. */
+function scanFailureMessage(status) {
+  // 401/403: the key is invalid or the Google project has been denied access.
+  // Nothing the user can retry their way out of.
+  if (status === 401 || status === 403) {
+    return "Receipt scanning is unavailable right now. Add the items by hand.";
+  }
+  if (status === 429) {
+    return "Receipt scanning is busy. Try again in a minute, or add the items by hand.";
+  }
+  return "Could not read that receipt. Add the items by hand.";
+}
+
 /**
  * Read a receipt image into a DRAFT list of line items for an ITEMIZED split.
  *
@@ -106,15 +119,29 @@ export async function scanReceiptItems(file) {
       }
     `;
 
-    const result = await model.generateContent([
-      { inlineData: { data: base64, mimeType: file.type } },
-      prompt,
-    ]);
+    // The SDK throws with the full request URL and Google's raw message in
+    // error.message, and fail() would forward that straight to a toast - the
+    // user saw "[GoogleGenerativeAI Error]: Error fetching from https://...".
+    // The detail is logged here; the UI gets a sentence it can show.
+    let text;
+    try {
+      const result = await model.generateContent([
+        { inlineData: { data: base64, mimeType: file.type } },
+        prompt,
+      ]);
 
-    // Same shape as scanReceipt() in actions/transaction.js, including the
-    // fence strip - Gemini wraps JSON in a markdown code block often enough.
-    const response = await result.response;
-    const text = response.text().replace(/```(?:json)?\n?/g, "").trim();
+      // Same shape as scanReceipt() in actions/transaction.js, including the
+      // fence strip - Gemini wraps JSON in a markdown code block often enough.
+      const response = await result.response;
+      text = response.text().replace(/```(?:json)?\n?/g, "").trim();
+    } catch (error) {
+      console.error(
+        "[split/receipts] Gemini request failed:",
+        error?.status ?? "",
+        error?.message ?? error
+      );
+      throw new ReceiptError(scanFailureMessage(error?.status));
+    }
 
     let raw;
     try {
